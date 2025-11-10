@@ -24,6 +24,7 @@ export default function Tickets() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
 
   useEffect(() => {
     if (user) {
@@ -33,7 +34,7 @@ export default function Tickets() {
 
   useEffect(() => {
     filterTickets();
-  }, [tickets, searchQuery, statusFilter]);
+  }, [tickets, searchQuery, statusFilter, assignmentFilter]);
 
   const loadTickets = async () => {
     try {
@@ -41,7 +42,8 @@ export default function Tickets() {
         .from("tickets")
         .select(`
           *,
-          products (name, sku)
+          products (name, sku),
+          assigned_staff:profiles!tickets_assigned_to_fkey (full_name, user_id)
         `)
         .order("created_at", { ascending: false });
 
@@ -61,6 +63,13 @@ export default function Tickets() {
 
   const filterTickets = () => {
     let filtered = [...tickets];
+
+    // Assignment filter (for staff/admin)
+    if (assignmentFilter === "mine" && (userRole === "STAFF" || userRole === "ADMIN")) {
+      filtered = filtered.filter((t) => t.assigned_to === user?.id);
+    } else if (assignmentFilter === "unassigned" && (userRole === "STAFF" || userRole === "ADMIN")) {
+      filtered = filtered.filter((t) => !t.assigned_to);
+    }
 
     // Status filter
     if (statusFilter !== "all") {
@@ -115,7 +124,7 @@ export default function Tickets() {
           <CardHeader>
             <CardTitle className="text-base">Filters</CardTitle>
           </CardHeader>
-          <CardContent className="flex gap-4">
+          <CardContent className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -127,8 +136,20 @@ export default function Tickets() {
                 />
               </div>
             </div>
+            {(userRole === "STAFF" || userRole === "ADMIN") && (
+              <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="All tickets" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tickets</SelectItem>
+                  <SelectItem value="mine">My Tickets</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -180,8 +201,15 @@ export default function Tickets() {
                             <span className="font-medium">{ticket.customer_name}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Serial:</span>{" "}
-                            <span className="font-medium">{ticket.serial_number}</span>
+                            <span className="text-muted-foreground">
+                              {userRole !== "CUSTOMER" ? "Assigned:" : "Serial:"}
+                            </span>{" "}
+                            <span className="font-medium">
+                              {userRole !== "CUSTOMER" 
+                                ? (ticket.assigned_staff?.full_name || "Unassigned")
+                                : ticket.serial_number
+                              }
+                            </span>
                           </div>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">
