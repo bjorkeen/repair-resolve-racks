@@ -185,6 +185,13 @@ export default function Tickets() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">#{ticket.ticket_number}</span>
                           <StatusBadge status={ticket.status} />
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            ticket.ticket_type === "RETURN" 
+                              ? "bg-destructive text-destructive-foreground" 
+                              : "bg-primary text-primary-foreground"
+                          }`}>
+                            {ticket.ticket_type === "RETURN" ? "Return" : "Repair"}
+                          </span>
                           {ticket.warranty_eligible && (
                             <span className="text-xs bg-success text-success-foreground px-2 py-0.5 rounded">
                               Under Warranty

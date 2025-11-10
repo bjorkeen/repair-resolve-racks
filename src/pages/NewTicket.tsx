@@ -26,6 +26,7 @@ const ticketSchema = z.object({
   serialNumber: z.string().min(3, "Serial number is required").max(50),
   purchaseDate: z.string().optional(),
   issue: z.string().min(10, "Please describe the issue in detail").max(1000),
+  ticketType: z.enum(["REPAIR", "RETURN"], { required_error: "Please select a ticket type" }),
 });
 
 export default function NewTicket() {
@@ -41,6 +42,7 @@ export default function NewTicket() {
     serialNumber: "",
     purchaseDate: "",
     issue: "",
+    ticketType: "" as "REPAIR" | "RETURN" | "",
   });
 
   useEffect(() => {
@@ -95,7 +97,8 @@ export default function NewTicket() {
           issue: formData.issue,
           warranty_eligible: warrantyEligible,
           status: "OPEN",
-        })
+          ticket_type: formData.ticketType,
+        } as any)
         .select()
         .single();
 
@@ -188,6 +191,31 @@ export default function NewTicket() {
 
               {/* Product Information */}
               <div className="space-y-4">
+                <h3 className="font-semibold">Request Type</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="ticketType">What would you like to do? *</Label>
+                  <Select
+                    value={formData.ticketType}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, ticketType: value as "REPAIR" | "RETURN" })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select request type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="REPAIR">Repair Product</SelectItem>
+                      <SelectItem value="RETURN">Return Product</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose whether you want to repair the product or return it
+                  </p>
+                </div>
+              </div>
+
+              {/* Product Information */}
+              <div className="space-y-4">
                 <h3 className="font-semibold">Product Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -201,7 +229,7 @@ export default function NewTicket() {
                       <SelectTrigger>
                         <SelectValue placeholder="Select a product" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background">
                         {products.map((product) => (
                           <SelectItem key={product.id} value={product.id}>
                             {product.name} ({product.sku})

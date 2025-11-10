@@ -141,6 +141,7 @@ export type Database = {
           serial_number: string
           status: Database["public"]["Enums"]["ticket_status"]
           ticket_number: number
+          ticket_type: Database["public"]["Enums"]["ticket_type"]
           updated_at: string
           warranty_eligible: boolean
         }
@@ -157,6 +158,7 @@ export type Database = {
           serial_number: string
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
+          ticket_type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
           warranty_eligible?: boolean
         }
@@ -173,6 +175,7 @@ export type Database = {
           serial_number?: string
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
+          ticket_type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
           warranty_eligible?: boolean
         }
@@ -261,6 +264,7 @@ export type Database = {
         | "AWAITING_CUSTOMER"
         | "RESOLVED"
         | "REJECTED"
+      ticket_type: "REPAIR" | "RETURN"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -397,6 +401,7 @@ export const Constants = {
         "RESOLVED",
         "REJECTED",
       ],
+      ticket_type: ["REPAIR", "RETURN"],
     },
   },
 } as const

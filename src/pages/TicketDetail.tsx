@@ -208,6 +208,9 @@ export default function TicketDetail() {
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-3xl font-bold">Ticket #{ticket.ticket_number}</h1>
               <StatusBadge status={ticket.status} />
+              <Badge variant={ticket.ticket_type === "RETURN" ? "destructive" : "default"}>
+                {ticket.ticket_type === "RETURN" ? "Return Request" : "Repair Request"}
+              </Badge>
               {ticket.warranty_eligible && (
                 <Badge className="bg-success text-success-foreground">
                   Under Warranty
