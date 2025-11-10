@@ -12,6 +12,11 @@ import Tickets from "./pages/Tickets";
 import NewTicket from "./pages/NewTicket";
 import TicketDetail from "./pages/TicketDetail";
 import NotFound from "./pages/NotFound";
+import AdminRepairCenters from "./pages/admin/RepairCenters";
+import AdminUserRoles from "./pages/admin/UserRoles";
+import AdminWarrantyPolicies from "./pages/admin/WarrantyPolicies";
+import AdminProducts from "./pages/admin/Products";
+import AdminAnalytics from "./pages/admin/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +59,47 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TicketDetail />
+                </ProtectedRoute>
+              }
+            />
+            {/* Admin Routes */}
+            <Route
+              path="/admin/repair-centers"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <AdminRepairCenters />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/user-roles"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <AdminUserRoles />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/warranty-policies"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <AdminWarrantyPolicies />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <AdminProducts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <AdminAnalytics />
                 </ProtectedRoute>
               }
             />

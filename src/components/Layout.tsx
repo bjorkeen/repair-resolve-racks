@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { User, LogOut, LayoutDashboard, Ticket, Plus } from "lucide-react";
+import { User, LogOut, LayoutDashboard, Ticket, Plus, Shield } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -73,6 +73,43 @@ export function Layout({ children }: LayoutProps) {
                     New Ticket
                   </Link>
                 </Button>
+                {userRole === "ADMIN" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/analytics" className="w-full cursor-pointer">
+                          Analytics
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/products" className="w-full cursor-pointer">
+                          Products
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/repair-centers" className="w-full cursor-pointer">
+                          Repair Centers
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/user-roles" className="w-full cursor-pointer">
+                          User Roles
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/warranty-policies" className="w-full cursor-pointer">
+                          Warranty Policies
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </nav>
             </div>
 
