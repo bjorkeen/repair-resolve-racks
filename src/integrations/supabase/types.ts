@@ -129,6 +129,7 @@ export type Database = {
       }
       tickets: {
         Row: {
+          assigned_to: string | null
           created_at: string
           customer_email: string
           customer_name: string
@@ -144,6 +145,7 @@ export type Database = {
           warranty_eligible: boolean
         }
         Insert: {
+          assigned_to?: string | null
           created_at?: string
           customer_email: string
           customer_name: string
@@ -159,6 +161,7 @@ export type Database = {
           warranty_eligible?: boolean
         }
         Update: {
+          assigned_to?: string | null
           created_at?: string
           customer_email?: string
           customer_name?: string
@@ -174,6 +177,13 @@ export type Database = {
           warranty_eligible?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "tickets_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "tickets_product_id_fkey"
             columns: ["product_id"]

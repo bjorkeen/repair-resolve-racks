@@ -21,9 +21,21 @@ const demoAccounts: DemoAccount[] = [
     role: 'CUSTOMER'
   },
   {
-    email: 'staff@test.com',
+    email: 'staff1@test.com',
     password: 'password123',
-    fullName: 'Test Staff',
+    fullName: 'Staff Member 1',
+    role: 'STAFF'
+  },
+  {
+    email: 'staff2@test.com',
+    password: 'password123',
+    fullName: 'Staff Member 2',
+    role: 'STAFF'
+  },
+  {
+    email: 'staff3@test.com',
+    password: 'password123',
+    fullName: 'Staff Member 3',
     role: 'STAFF'
   },
   {

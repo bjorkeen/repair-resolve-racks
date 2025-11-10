@@ -29,6 +29,7 @@ export default function TicketDetail() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const [newStatus, setNewStatus] = useState<string>("OPEN");
   const [statusNote, setStatusNote] = useState("");
 
@@ -45,7 +46,8 @@ export default function TicketDetail() {
         .from("tickets")
         .select(`
           *,
-          products (name, sku, warranty_months)
+          products (name, sku, warranty_months),
+          assigned_staff:profiles!tickets_assigned_to_fkey (full_name, user_id)
         `)
         .eq("id", id)
         .single();
@@ -140,6 +142,43 @@ export default function TicketDetail() {
       });
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleClaimTicket = async () => {
+    setClaiming(true);
+    try {
+      // Assign ticket to current user
+      const { error: updateError } = await supabase
+        .from("tickets")
+        .update({ assigned_to: user?.id })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      // Create event
+      await supabase.from("ticket_events").insert({
+        ticket_id: id,
+        by_user_id: user?.id,
+        type: "ASSIGNED",
+        note: "Ticket claimed by staff member",
+      });
+
+      toast({
+        title: "Ticket claimed",
+        description: "You have been assigned to this ticket",
+      });
+
+      loadTicketDetails();
+    } catch (error) {
+      console.error("Error claiming ticket:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to claim ticket",
+      });
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -284,11 +323,48 @@ export default function TicketDetail() {
           {/* Sidebar */}
           <div className="space-y-6">
             {canUpdateStatus && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Update Status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <>
+                {/* Assignment Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Assignment</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {ticket.assigned_staff ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">Assigned to</p>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <p className="font-medium">{ticket.assigned_staff.full_name}</p>
+                        </div>
+                        {ticket.assigned_to === user?.id && (
+                          <Badge variant="secondary" className="mt-2">
+                            You are assigned
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">No staff assigned</p>
+                        <Button
+                          onClick={handleClaimTicket}
+                          disabled={claiming}
+                          className="w-full"
+                          variant="secondary"
+                        >
+                          {claiming ? "Claiming..." : "Claim Ticket"}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Status Update Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Update Status</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>New Status</Label>
                     <Select value={newStatus} onValueChange={setNewStatus}>
@@ -323,6 +399,7 @@ export default function TicketDetail() {
                   </Button>
                 </CardContent>
               </Card>
+              </>
             )}
 
             <Card>
