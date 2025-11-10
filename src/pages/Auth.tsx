@@ -192,15 +192,10 @@ export default function Auth() {
             </Tabs>
 
             <div className="mt-6 p-4 bg-muted rounded-lg text-sm">
-              <p className="font-medium mb-2">Demo Accounts:</p>
+              <p className="font-medium mb-2">Getting Started:</p>
               <p className="text-muted-foreground text-xs">
-                Create your own account or use these test credentials:
+                Create a new account to begin using the Returns & Repairs system.
               </p>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>• Customer: customer@test.com / password123</li>
-                <li>• Staff: staff@test.com / password123</li>
-                <li>• Admin: admin@test.com / password123</li>
-              </ul>
             </div>
           </CardContent>
         </Card>
