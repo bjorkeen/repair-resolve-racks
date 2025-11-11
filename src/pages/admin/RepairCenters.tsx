@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Package } from "lucide-react";
 
 interface RepairCenter {
   id: string;
@@ -31,11 +32,21 @@ interface RepairCenter {
   created_at: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+}
+
 export default function RepairCenters() {
   const [centers, setCenters] = useState<RepairCenter[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [productsDialogOpen, setProductsDialogOpen] = useState(false);
   const [editingCenter, setEditingCenter] = useState<RepairCenter | null>(null);
+  const [selectedCenter, setSelectedCenter] = useState<RepairCenter | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     region: "",
@@ -44,6 +55,7 @@ export default function RepairCenters() {
 
   useEffect(() => {
     loadCenters();
+    loadProducts();
   }, []);
 
   const loadCenters = async () => {
@@ -61,6 +73,84 @@ export default function RepairCenters() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, sku")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error: any) {
+      toast.error("Failed to load products");
+      console.error(error);
+    }
+  };
+
+  const loadCenterProducts = async (centerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("repair_center_products")
+        .select("product_id")
+        .eq("repair_center_id", centerId);
+
+      if (error) throw error;
+      setSelectedProducts(data?.map((item) => item.product_id) || []);
+    } catch (error: any) {
+      toast.error("Failed to load center products");
+      console.error(error);
+    }
+  };
+
+  const openProductsDialog = async (center: RepairCenter) => {
+    setSelectedCenter(center);
+    await loadCenterProducts(center.id);
+    setProductsDialogOpen(true);
+  };
+
+  const handleSaveProducts = async () => {
+    if (!selectedCenter) return;
+
+    try {
+      // Delete existing assignments
+      await supabase
+        .from("repair_center_products")
+        .delete()
+        .eq("repair_center_id", selectedCenter.id);
+
+      // Insert new assignments
+      if (selectedProducts.length > 0) {
+        const assignments = selectedProducts.map((productId) => ({
+          repair_center_id: selectedCenter.id,
+          product_id: productId,
+        }));
+
+        const { error } = await supabase
+          .from("repair_center_products")
+          .insert(assignments);
+
+        if (error) throw error;
+      }
+
+      toast.success("Product assignments updated successfully");
+      setProductsDialogOpen(false);
+      setSelectedCenter(null);
+      setSelectedProducts([]);
+    } catch (error: any) {
+      toast.error("Failed to save product assignments");
+      console.error(error);
+    }
+  };
+
+  const toggleProduct = (productId: string) => {
+    setSelectedProducts((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -217,16 +307,17 @@ export default function RepairCenters() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Region</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Products</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {centers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       No repair centers found. Add one to get started.
                     </TableCell>
                   </TableRow>
@@ -236,6 +327,16 @@ export default function RepairCenters() {
                       <TableCell className="font-medium">{center.name}</TableCell>
                       <TableCell>{center.region}</TableCell>
                       <TableCell>{center.email}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openProductsDialog(center)}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          Manage
+                        </Button>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -261,6 +362,57 @@ export default function RepairCenters() {
             </Table>
           </CardContent>
         </Card>
+
+        <Dialog open={productsDialogOpen} onOpenChange={setProductsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Manage Products for {selectedCenter?.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select which products this repair center can handle
+              </p>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center space-x-2 p-2 hover:bg-accent rounded"
+                  >
+                    <Checkbox
+                      id={product.id}
+                      checked={selectedProducts.includes(product.id)}
+                      onCheckedChange={() => toggleProduct(product.id)}
+                    />
+                    <Label
+                      htmlFor={product.id}
+                      className="flex-1 cursor-pointer"
+                    >
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          SKU: {product.sku}
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleSaveProducts} className="flex-1">
+                  Save
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setProductsDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

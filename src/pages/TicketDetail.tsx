@@ -47,7 +47,8 @@ export default function TicketDetail() {
         .select(`
           *,
           products (name, sku, warranty_months),
-          assigned_staff:profiles!tickets_assigned_to_fkey (full_name, user_id)
+          assigned_staff:profiles!tickets_assigned_to_fkey (full_name, user_id),
+          repair_centers (name, region, email)
         `)
         .eq("id", id)
         .single();
@@ -176,6 +177,41 @@ export default function TicketDetail() {
         variant: "destructive",
         title: "Error",
         description: "Failed to claim ticket",
+      });
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleUnclaimTicket = async () => {
+    setClaiming(true);
+    try {
+      const { error: updateError } = await supabase
+        .from("tickets")
+        .update({ assigned_to: null })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      await supabase.from("ticket_events").insert({
+        ticket_id: id,
+        by_user_id: user?.id,
+        type: "UNASSIGNED",
+        note: "Ticket unclaimed by staff member",
+      });
+
+      toast({
+        title: "Ticket unclaimed",
+        description: "You have unassigned yourself from this ticket",
+      });
+
+      loadTicketDetails();
+    } catch (error) {
+      console.error("Error unclaiming ticket:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to unclaim ticket",
       });
     } finally {
       setClaiming(false);
@@ -334,16 +370,24 @@ export default function TicketDetail() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {ticket.assigned_staff ? (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Assigned to</p>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <p className="font-medium">{ticket.assigned_staff.full_name}</p>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Assigned to</p>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <p className="font-medium">{ticket.assigned_staff.full_name}</p>
+                          </div>
                         </div>
                         {ticket.assigned_to === user?.id && (
-                          <Badge variant="secondary" className="mt-2">
-                            You are assigned
-                          </Badge>
+                          <Button
+                            onClick={handleUnclaimTicket}
+                            disabled={claiming}
+                            className="w-full"
+                            variant="outline"
+                            size="sm"
+                          >
+                            {claiming ? "Unclaiming..." : "Unclaim Ticket"}
+                          </Button>
                         )}
                       </div>
                     ) : (
@@ -403,6 +447,28 @@ export default function TicketDetail() {
                 </CardContent>
               </Card>
               </>
+            )}
+
+            {ticket.status === "IN_REPAIR" && ticket.repair_centers && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Repair Center</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Center Name</p>
+                    <p className="font-medium">{ticket.repair_centers.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Region</p>
+                    <p className="font-medium">{ticket.repair_centers.region}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contact</p>
+                    <p className="font-medium">{ticket.repair_centers.email}</p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             <Card>

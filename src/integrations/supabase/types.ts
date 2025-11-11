@@ -68,6 +68,42 @@ export type Database = {
         }
         Relationships: []
       }
+      repair_center_products: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          repair_center_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          repair_center_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          repair_center_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_center_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repair_center_products_repair_center_id_fkey"
+            columns: ["repair_center_id"]
+            isOneToOne: false
+            referencedRelation: "repair_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repair_centers: {
         Row: {
           created_at: string
@@ -138,6 +174,7 @@ export type Database = {
           owner_id: string
           product_id: string
           purchase_date: string | null
+          repair_center_id: string | null
           serial_number: string
           status: Database["public"]["Enums"]["ticket_status"]
           ticket_number: number
@@ -155,6 +192,7 @@ export type Database = {
           owner_id: string
           product_id: string
           purchase_date?: string | null
+          repair_center_id?: string | null
           serial_number: string
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
@@ -172,6 +210,7 @@ export type Database = {
           owner_id?: string
           product_id?: string
           purchase_date?: string | null
+          repair_center_id?: string | null
           serial_number?: string
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
@@ -192,6 +231,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_repair_center_id_fkey"
+            columns: ["repair_center_id"]
+            isOneToOne: false
+            referencedRelation: "repair_centers"
             referencedColumns: ["id"]
           },
         ]
