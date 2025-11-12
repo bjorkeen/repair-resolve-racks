@@ -10,7 +10,7 @@ interface DemoAccount {
   email: string;
   password: string;
   fullName: string;
-  role: 'CUSTOMER' | 'STAFF' | 'ADMIN';
+  role: 'CUSTOMER' | 'STAFF' | 'ADMIN' | 'REPAIR_CENTER';
 }
 
 const demoAccounts: DemoAccount[] = [
@@ -43,6 +43,24 @@ const demoAccounts: DemoAccount[] = [
     password: 'password123',
     fullName: 'Test Admin',
     role: 'ADMIN'
+  },
+  {
+    email: 'repair-mobile@test.com',
+    password: 'password123',
+    fullName: 'Mobile Repair Center',
+    role: 'REPAIR_CENTER'
+  },
+  {
+    email: 'repair-laptop@test.com',
+    password: 'password123',
+    fullName: 'Laptop Repair Center',
+    role: 'REPAIR_CENTER'
+  },
+  {
+    email: 'repair-appliances@test.com',
+    password: 'password123',
+    fullName: 'Home Appliances Repair Center',
+    role: 'REPAIR_CENTER'
   }
 ];
 
@@ -115,6 +133,47 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         console.log(`Role updated to ${account.role} for ${account.email}`);
+      }
+
+      // If it's a repair center, create or link to repair center entry
+      if (account.role === 'REPAIR_CENTER') {
+        const repairCenterName = account.fullName;
+        const region = account.email.includes('mobile') ? 'North' : 
+                      account.email.includes('laptop') ? 'South' : 'East';
+        
+        // Check if repair center already exists
+        const { data: existingCenter } = await supabaseAdmin
+          .from('repair_centers')
+          .select('id')
+          .eq('email', account.email)
+          .maybeSingle();
+
+        if (!existingCenter) {
+          const { error: centerError } = await supabaseAdmin
+            .from('repair_centers')
+            .insert({
+              name: repairCenterName,
+              email: account.email,
+              region: region,
+              user_id: userData.user.id
+            });
+
+          if (centerError) {
+            console.error(`Error creating repair center for ${account.email}:`, centerError);
+          } else {
+            console.log(`Repair center created for ${account.email}`);
+          }
+        } else {
+          // Update existing repair center with user_id
+          const { error: updateError } = await supabaseAdmin
+            .from('repair_centers')
+            .update({ user_id: userData.user.id })
+            .eq('id', existingCenter.id);
+
+          if (updateError) {
+            console.error(`Error updating repair center for ${account.email}:`, updateError);
+          }
+        }
       }
 
       results.push({ 
