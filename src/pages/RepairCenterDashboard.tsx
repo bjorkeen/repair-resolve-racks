@@ -10,13 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Package, Calendar, Hash, AlertCircle } from "lucide-react";
+import { Package, Calendar, Hash, AlertCircle, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TicketAttachments } from "@/components/TicketAttachments";
 
 export default function RepairCenterDashboard() {
   const { user } = useAuth();
@@ -107,6 +109,74 @@ export default function RepairCenterDashboard() {
     }
   };
 
+  const updateEstimatedDate = async (ticketId: string, date: string) => {
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({ estimated_completion_date: date })
+        .eq("id", ticketId);
+
+      if (error) throw error;
+
+      await supabase.from("ticket_events").insert({
+        ticket_id: ticketId,
+        by_user_id: user?.id,
+        type: "STATUS_CHANGED",
+        note: `Estimated completion date set to ${format(new Date(date), "MMM d, yyyy")}`,
+      });
+
+      toast({
+        title: "Date updated",
+        description: "Estimated completion date has been set",
+      });
+
+      loadData();
+    } catch (error) {
+      console.error("Error updating date:", error);
+      toast({
+        variant: "destructive",
+        title: "Error updating date",
+      });
+    }
+  };
+
+  const handleFileUpload = async (ticketId: string, files: FileList) => {
+    try {
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${ticketId}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("ticket-attachments")
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        await supabase.from("ticket_attachments").insert({
+          ticket_id: ticketId,
+          file_name: file.name,
+          file_path: fileName,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_by: user?.id,
+        });
+      }
+
+      toast({
+        title: "Files uploaded",
+        description: "Repair notes and attachments have been added",
+      });
+
+      loadData();
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast({
+        variant: "destructive",
+        title: "Error uploading files",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -185,21 +255,49 @@ export default function RepairCenterDashboard() {
                     <p className="text-sm">{ticket.issue}</p>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-4 border-t">
-                    <label className="text-sm font-medium">Update Repair Status:</label>
-                    <Select
-                      value={ticket.repair_status || ""}
-                      onValueChange={(value) => updateRepairStatus(ticket.id, value)}
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="BLOCKED">Blocked</SelectItem>
-                        <SelectItem value="DONE">Done</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="pt-4 border-t">
+                    <TicketAttachments ticketId={ticket.id} />
+                  </div>
+
+                  <div className="flex flex-col gap-3 pt-4 border-t">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium">Update Repair Status:</label>
+                      <Select
+                        value={ticket.repair_status || ""}
+                        onValueChange={(value) => updateRepairStatus(ticket.id, value)}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                          <SelectItem value="BLOCKED">Blocked</SelectItem>
+                          <SelectItem value="DONE">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium">Estimated Completion:</label>
+                      <Input
+                        type="date"
+                        className="w-[200px]"
+                        value={ticket.estimated_completion_date ? format(new Date(ticket.estimated_completion_date), "yyyy-MM-dd") : ""}
+                        onChange={(e) => updateEstimatedDate(ticket.id, e.target.value)}
+                        min={format(new Date(), "yyyy-MM-dd")}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium">Upload Repair Notes:</label>
+                      <Input
+                        type="file"
+                        className="w-[300px]"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        onChange={(e) => e.target.files && handleFileUpload(ticket.id, e.target.files)}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

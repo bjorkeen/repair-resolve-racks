@@ -286,6 +286,7 @@ export type Database = {
           created_at: string
           customer_email: string
           customer_name: string
+          estimated_completion_date: string | null
           id: string
           issue: string
           owner_id: string
@@ -308,6 +309,7 @@ export type Database = {
           created_at?: string
           customer_email: string
           customer_name: string
+          estimated_completion_date?: string | null
           id?: string
           issue: string
           owner_id: string
@@ -330,6 +332,7 @@ export type Database = {
           created_at?: string
           customer_email?: string
           customer_name?: string
+          estimated_completion_date?: string | null
           id?: string
           issue?: string
           owner_id?: string
