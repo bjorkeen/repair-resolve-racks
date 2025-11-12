@@ -17,9 +17,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Mail, User, Package, Hash } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, User, Package, Hash, X } from "lucide-react";
 import { format } from "date-fns";
 import { RepairCenterDialog } from "@/components/RepairCenterDialog";
+import { TicketAttachments } from "@/components/TicketAttachments";
+import { TicketComments } from "@/components/TicketComments";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -31,6 +33,7 @@ export default function TicketDetail() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [newStatus, setNewStatus] = useState<string>("OPEN");
   const [statusNote, setStatusNote] = useState("");
   const [showRepairCenterDialog, setShowRepairCenterDialog] = useState(false);
@@ -268,6 +271,45 @@ export default function TicketDetail() {
     }
   };
 
+  const handleCancelTicket = async () => {
+    if (!window.confirm("Are you sure you want to cancel this ticket? This action cannot be undone.")) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const { error: updateError } = await supabase
+        .from("tickets")
+        .update({ status: "CANCELLED" })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      await supabase.from("ticket_events").insert({
+        ticket_id: id,
+        by_user_id: user?.id,
+        type: "CANCELLED",
+        note: "Ticket cancelled by customer",
+      });
+
+      toast({
+        title: "Ticket cancelled",
+        description: "Your ticket has been cancelled",
+      });
+
+      loadTicketDetails();
+    } catch (error) {
+      console.error("Error cancelling ticket:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to cancel ticket",
+      });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -281,6 +323,10 @@ export default function TicketDetail() {
   if (!ticket) return null;
 
   const canUpdateStatus = userRole === "STAFF" || userRole === "ADMIN";
+  const canCancelTicket = 
+    userRole === "CUSTOMER" && 
+    ticket.owner_id === user?.id && 
+    (ticket.status === "OPEN" || ticket.status === "UNDER_REVIEW");
 
   return (
     <Layout>
@@ -367,6 +413,12 @@ export default function TicketDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Attachments */}
+            <TicketAttachments ticketId={id!} />
+
+            {/* Comments Section */}
+            <TicketComments ticketId={id!} />
 
             {/* Event Timeline */}
             <Card>
@@ -497,6 +549,29 @@ export default function TicketDetail() {
                 </CardContent>
               </Card>
               </>
+            )}
+
+            {/* Customer Cancel Button */}
+            {canCancelTicket && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cancel Ticket</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    You can cancel this ticket while it's still in Open or Under Review status.
+                  </p>
+                  <Button
+                    onClick={handleCancelTicket}
+                    disabled={cancelling}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {cancelling ? "Cancelling..." : "Cancel Ticket"}
+                  </Button>
+                </CardContent>
+              </Card>
             )}
 
             {ticket.status === "IN_REPAIR" && ticket.repair_centers && (

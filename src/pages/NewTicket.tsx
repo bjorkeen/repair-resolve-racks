@@ -29,12 +29,16 @@ const ticketSchema = z.object({
   ticketType: z.enum(["REPAIR", "RETURN"], { required_error: "Please select a ticket type" }),
 });
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+
 export default function NewTicket() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState({
     customerName: "",
     customerEmail: user?.email || "",
@@ -65,6 +69,37 @@ export default function NewTicket() {
     const monthsSincePurchase = differenceInMonths(now, purchase);
     
     return monthsSincePurchase <= product.warranty_months;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    
+    // Validate files
+    const validFiles = selectedFiles.filter((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: `${file.name} exceeds 5MB limit`,
+        });
+        return false;
+      }
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: `${file.name} is not an allowed file type`,
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setFiles((prev) => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,6 +138,32 @@ export default function NewTicket() {
         .single();
 
       if (ticketError) throw ticketError;
+
+      // Upload files if any
+      if (files.length > 0) {
+        for (const file of files) {
+          const filePath = `${user?.id}/${ticket.id}/${file.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from("ticket-attachments")
+            .upload(filePath, file);
+
+          if (uploadError) {
+            console.error("Error uploading file:", uploadError);
+            continue;
+          }
+
+          // Save attachment record
+          await supabase.from("ticket_attachments").insert({
+            ticket_id: ticket.id,
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            mime_type: file.type,
+            uploaded_by: user?.id,
+          });
+        }
+      }
 
       // Create initial event
       await supabase.from("ticket_events").insert({
@@ -282,6 +343,43 @@ export default function NewTicket() {
                 <p className="text-xs text-muted-foreground">
                   Minimum 10 characters, maximum 1000 characters
                 </p>
+              </div>
+
+              {/* File Attachments */}
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Attachments (Optional)</Label>
+                <Input
+                  id="attachments"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                  multiple
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload photos or documents (max 5MB per file, JPG/PNG/WEBP/PDF only)
+                </p>
+                {files.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {files.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 rounded border bg-accent/50"
+                      >
+                        <span className="text-sm truncate flex-1">{file.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          disabled={loading}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Submit */}
