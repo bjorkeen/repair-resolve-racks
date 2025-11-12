@@ -17,6 +17,7 @@ import AdminUserRoles from "./pages/admin/UserRoles";
 import AdminWarrantyPolicies from "./pages/admin/WarrantyPolicies";
 import AdminProducts from "./pages/admin/Products";
 import AdminAnalytics from "./pages/admin/Analytics";
+import RepairCenterDashboard from "./pages/RepairCenterDashboard";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,15 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TicketDetail />
+                </ProtectedRoute>
+              }
+            />
+            {/* Repair Center Routes */}
+            <Route
+              path="/repair-center"
+              element={
+                <ProtectedRoute allowedRoles={["REPAIR_CENTER"]}>
+                  <RepairCenterDashboard />
                 </ProtectedRoute>
               }
             />

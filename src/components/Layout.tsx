@@ -31,6 +31,8 @@ export function Layout({ children }: LayoutProps) {
         return "bg-destructive text-destructive-foreground";
       case "STAFF":
         return "bg-primary text-primary-foreground";
+      case "REPAIR_CENTER":
+        return "bg-accent text-accent-foreground";
       default:
         return "bg-secondary text-secondary-foreground";
     }
@@ -55,24 +57,35 @@ export function Layout({ children }: LayoutProps) {
 
               {/* Navigation */}
               <nav className="hidden md:flex items-center gap-1">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/dashboard" className="gap-2">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/tickets" className="gap-2">
-                    <Ticket className="h-4 w-4" />
-                    Tickets
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/tickets/new" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Ticket
-                  </Link>
-                </Button>
+                {userRole === "REPAIR_CENTER" ? (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/repair-center" className="gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      My Tickets
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/dashboard" className="gap-2">
+                        <LayoutDashboard className="h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/tickets" className="gap-2">
+                        <Ticket className="h-4 w-4" />
+                        Tickets
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/tickets/new" className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        New Ticket
+                      </Link>
+                    </Button>
+                  </>
+                )}
                 {userRole === "ADMIN" && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

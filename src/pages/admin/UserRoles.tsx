@@ -33,7 +33,7 @@ import { format } from "date-fns";
 
 interface UserWithRole {
   user_id: string;
-  role: "CUSTOMER" | "STAFF" | "ADMIN";
+  role: "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER";
   email: string;
   created_at: string;
 }
@@ -43,7 +43,7 @@ export default function UserRoles() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
-  const [newRole, setNewRole] = useState<"CUSTOMER" | "STAFF" | "ADMIN" | "">("");
+  const [newRole, setNewRole] = useState<"CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER" | "">("");
 
   useEffect(() => {
     loadUsers();
@@ -117,6 +117,8 @@ export default function UserRoles() {
         return "bg-destructive text-destructive-foreground";
       case "STAFF":
         return "bg-primary text-primary-foreground";
+      case "REPAIR_CENTER":
+        return "bg-accent text-accent-foreground";
       default:
         return "bg-secondary text-secondary-foreground";
     }
@@ -246,7 +248,7 @@ export default function UserRoles() {
               </div>
               <div className="space-y-2">
                 <Label>New Role</Label>
-                <Select value={newRole} onValueChange={(value) => setNewRole(value as "CUSTOMER" | "STAFF" | "ADMIN")}>
+                <Select value={newRole} onValueChange={(value) => setNewRole(value as "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -254,6 +256,7 @@ export default function UserRoles() {
                     <SelectItem value="CUSTOMER">Customer</SelectItem>
                     <SelectItem value="STAFF">Staff</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="REPAIR_CENTER">Repair Center</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

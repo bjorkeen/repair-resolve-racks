@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Calendar, Mail, User, Package, Hash } from "lucide-react";
 import { format } from "date-fns";
+import { RepairCenterDialog } from "@/components/RepairCenterDialog";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -32,6 +33,8 @@ export default function TicketDetail() {
   const [claiming, setClaiming] = useState(false);
   const [newStatus, setNewStatus] = useState<string>("OPEN");
   const [statusNote, setStatusNote] = useState("");
+  const [showRepairCenterDialog, setShowRepairCenterDialog] = useState(false);
+  const [recommendedRepairCenter, setRecommendedRepairCenter] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
@@ -108,13 +111,60 @@ export default function TicketDetail() {
       return;
     }
 
+    // If changing to IN_REPAIR, show repair center dialog
+    if (newStatus === "IN_REPAIR") {
+      await fetchRecommendedRepairCenter();
+      return;
+    }
+
+    await updateTicketStatus();
+  };
+
+  const fetchRecommendedRepairCenter = async () => {
+    try {
+      const { data: repairCenterData } = await supabase
+        .from("repair_center_products")
+        .select("repair_centers (*)")
+        .eq("product_id", ticket.product_id)
+        .single();
+
+      setRecommendedRepairCenter(repairCenterData?.repair_centers || null);
+      setShowRepairCenterDialog(true);
+    } catch (error) {
+      console.error("Error fetching repair center:", error);
+      setRecommendedRepairCenter(null);
+      setShowRepairCenterDialog(true);
+    }
+  };
+
+  const confirmRepairCenterAssignment = async () => {
+    if (!recommendedRepairCenter) {
+      toast({
+        variant: "destructive",
+        title: "No repair center available",
+        description: "Please assign a repair center to this product first",
+      });
+      setShowRepairCenterDialog(false);
+      return;
+    }
+
+    setUpdating(true);
+    await updateTicketStatus(recommendedRepairCenter.id);
+    setShowRepairCenterDialog(false);
+  };
+
+  const updateTicketStatus = async (repairCenterId?: string) => {
     setUpdating(true);
 
     try {
-      // Update ticket status
+      const updateData: any = { status: newStatus as any };
+      if (repairCenterId) {
+        updateData.repair_center_id = repairCenterId;
+      }
+
       const { error: updateError } = await supabase
         .from("tickets")
-        .update({ status: newStatus as any })
+        .update(updateData)
         .eq("id", id);
 
       if (updateError) throw updateError;
@@ -467,6 +517,14 @@ export default function TicketDetail() {
                     <p className="text-sm text-muted-foreground">Contact</p>
                     <p className="font-medium">{ticket.repair_centers.email}</p>
                   </div>
+                  {ticket.repair_status && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Repair Status</p>
+                      <Badge variant="outline" className="mt-1">
+                        {ticket.repair_status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -496,6 +554,15 @@ export default function TicketDetail() {
             </Card>
           </div>
         </div>
+
+        <RepairCenterDialog
+          open={showRepairCenterDialog}
+          onOpenChange={setShowRepairCenterDialog}
+          repairCenter={recommendedRepairCenter}
+          productName={ticket?.products?.name || ""}
+          onConfirm={confirmRepairCenterAssignment}
+          loading={updating}
+        />
       </div>
     </Layout>
   );

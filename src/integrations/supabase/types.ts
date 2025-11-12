@@ -111,6 +111,7 @@ export type Database = {
           id: string
           name: string
           region: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -118,6 +119,7 @@ export type Database = {
           id?: string
           name: string
           region: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -125,6 +127,7 @@ export type Database = {
           id?: string
           name?: string
           region?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -175,6 +178,7 @@ export type Database = {
           product_id: string
           purchase_date: string | null
           repair_center_id: string | null
+          repair_status: Database["public"]["Enums"]["repair_status"] | null
           serial_number: string
           status: Database["public"]["Enums"]["ticket_status"]
           ticket_number: number
@@ -193,6 +197,7 @@ export type Database = {
           product_id: string
           purchase_date?: string | null
           repair_center_id?: string | null
+          repair_status?: Database["public"]["Enums"]["repair_status"] | null
           serial_number: string
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
@@ -211,6 +216,7 @@ export type Database = {
           product_id?: string
           purchase_date?: string | null
           repair_center_id?: string | null
+          repair_status?: Database["public"]["Enums"]["repair_status"] | null
           serial_number?: string
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
@@ -302,7 +308,8 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "CUSTOMER" | "STAFF" | "ADMIN"
+      app_role: "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER"
+      repair_status: "IN_PROGRESS" | "BLOCKED" | "DONE"
       ticket_status:
         | "OPEN"
         | "UNDER_REVIEW"
@@ -438,7 +445,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["CUSTOMER", "STAFF", "ADMIN"],
+      app_role: ["CUSTOMER", "STAFF", "ADMIN", "REPAIR_CENTER"],
+      repair_status: ["IN_PROGRESS", "BLOCKED", "DONE"],
       ticket_status: [
         "OPEN",
         "UNDER_REVIEW",
