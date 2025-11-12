@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PriorityBadge } from "@/components/PriorityBadge";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -17,8 +18,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Mail, User, Package, Hash, X } from "lucide-react";
-import { format } from "date-fns";
+import { ArrowLeft, Calendar, Mail, User, Package, Hash, X, Clock } from "lucide-react";
+import { format, differenceInHours } from "date-fns";
 import { RepairCenterDialog } from "@/components/RepairCenterDialog";
 import { TicketAttachments } from "@/components/TicketAttachments";
 import { TicketComments } from "@/components/TicketComments";
@@ -35,6 +36,7 @@ export default function TicketDetail() {
   const [claiming, setClaiming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [newStatus, setNewStatus] = useState<string>("OPEN");
+  const [newPriority, setNewPriority] = useState<string>("NORMAL");
   const [statusNote, setStatusNote] = useState("");
   const [showRepairCenterDialog, setShowRepairCenterDialog] = useState(false);
   const [recommendedRepairCenter, setRecommendedRepairCenter] = useState<any>(null);
@@ -81,6 +83,7 @@ export default function TicketDetail() {
 
       setTicket(ticketData);
       setNewStatus(ticketData.status);
+      setNewPriority(ticketData.priority || "NORMAL");
 
       // Load events
       const { data: eventsData } = await supabase
@@ -328,6 +331,62 @@ export default function TicketDetail() {
     ticket.owner_id === user?.id && 
     (ticket.status === "OPEN" || ticket.status === "UNDER_REVIEW");
 
+  // Calculate SLA status
+  const getSLAStatus = () => {
+    if (!ticket.sla_due_at) return null;
+    
+    const now = new Date();
+    const dueDate = new Date(ticket.sla_due_at);
+    const hoursRemaining = differenceInHours(dueDate, now);
+    
+    if (hoursRemaining < 0) {
+      return { label: "Overdue", className: "text-destructive", hours: Math.abs(hoursRemaining) };
+    } else if (hoursRemaining < 4) {
+      return { label: "Due Soon", className: "text-amber-600 dark:text-amber-400", hours: hoursRemaining };
+    } else {
+      return { label: "On Track", className: "text-success", hours: hoursRemaining };
+    }
+  };
+
+  const slaStatus = getSLAStatus();
+
+  const handlePriorityUpdate = async () => {
+    if (newPriority === ticket.priority) return;
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({ priority: newPriority as any })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await supabase.from("ticket_events").insert({
+        ticket_id: id,
+        by_user_id: user?.id,
+        type: "STATUS_CHANGED",
+        note: `Priority changed to ${newPriority}`,
+      });
+
+      toast({
+        title: "Priority updated",
+        description: "Ticket priority has been updated successfully",
+      });
+
+      loadTicketDetails();
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update priority",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -337,9 +396,10 @@ export default function TicketDetail() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
               <h1 className="text-3xl font-bold">Ticket #{ticket.ticket_number}</h1>
               <StatusBadge status={ticket.status} />
+              <PriorityBadge priority={ticket.priority || "NORMAL"} />
               <Badge variant={ticket.ticket_type === "RETURN" ? "destructive" : "default"}>
                 {ticket.ticket_type === "RETURN" ? "Return Request" : "Repair Request"}
               </Badge>
@@ -463,6 +523,40 @@ export default function TicketDetail() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* SLA Status Card */}
+            {canUpdateStatus && slaStatus && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    SLA Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Status</p>
+                    <p className={`font-semibold ${slaStatus.className}`}>
+                      {slaStatus.label}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {slaStatus.hours < 0 ? "Overdue by" : "Time remaining"}
+                    </p>
+                    <p className="font-medium">{Math.abs(Math.round(slaStatus.hours))} hours</p>
+                  </div>
+                  {ticket.sla_due_at && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Due date</p>
+                      <p className="font-medium">
+                        {format(new Date(ticket.sla_due_at), "MMM d, yyyy 'at' h:mm a")}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {canUpdateStatus && (
               <>
                 {/* Assignment Card */}
@@ -505,6 +599,36 @@ export default function TicketDetail() {
                         </Button>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+
+                {/* Priority Management Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Priority Management</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Priority Level</Label>
+                      <Select value={newPriority} onValueChange={setNewPriority}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="LOW">Low Priority</SelectItem>
+                          <SelectItem value="NORMAL">Normal Priority</SelectItem>
+                          <SelectItem value="URGENT">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      onClick={handlePriorityUpdate}
+                      disabled={updating || newPriority === ticket.priority}
+                      className="w-full"
+                      variant="secondary"
+                    >
+                      {updating ? "Updating..." : "Update Priority"}
+                    </Button>
                   </CardContent>
                 </Card>
 

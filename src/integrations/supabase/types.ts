@@ -215,6 +215,7 @@ export type Database = {
           comment: string
           created_at: string
           id: string
+          is_internal: boolean | null
           ticket_id: string
           user_id: string
         }
@@ -222,6 +223,7 @@ export type Database = {
           comment: string
           created_at?: string
           id?: string
+          is_internal?: boolean | null
           ticket_id: string
           user_id: string
         }
@@ -229,6 +231,7 @@ export type Database = {
           comment?: string
           created_at?: string
           id?: string
+          is_internal?: boolean | null
           ticket_id?: string
           user_id?: string
         }
@@ -286,11 +289,14 @@ export type Database = {
           id: string
           issue: string
           owner_id: string
+          priority: Database["public"]["Enums"]["ticket_priority"] | null
           product_id: string
           purchase_date: string | null
           repair_center_id: string | null
           repair_status: Database["public"]["Enums"]["repair_status"] | null
           serial_number: string
+          sla_due_at: string | null
+          sla_hours: number | null
           status: Database["public"]["Enums"]["ticket_status"]
           ticket_number: number
           ticket_type: Database["public"]["Enums"]["ticket_type"]
@@ -305,11 +311,14 @@ export type Database = {
           id?: string
           issue: string
           owner_id: string
+          priority?: Database["public"]["Enums"]["ticket_priority"] | null
           product_id: string
           purchase_date?: string | null
           repair_center_id?: string | null
           repair_status?: Database["public"]["Enums"]["repair_status"] | null
           serial_number: string
+          sla_due_at?: string | null
+          sla_hours?: number | null
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
@@ -324,11 +333,14 @@ export type Database = {
           id?: string
           issue?: string
           owner_id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"] | null
           product_id?: string
           purchase_date?: string | null
           repair_center_id?: string | null
           repair_status?: Database["public"]["Enums"]["repair_status"] | null
           serial_number?: string
+          sla_due_at?: string | null
+          sla_hours?: number | null
           status?: Database["public"]["Enums"]["ticket_status"]
           ticket_number?: number
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
@@ -421,6 +433,7 @@ export type Database = {
     Enums: {
       app_role: "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER"
       repair_status: "IN_PROGRESS" | "BLOCKED" | "DONE"
+      ticket_priority: "LOW" | "NORMAL" | "URGENT"
       ticket_status:
         | "OPEN"
         | "UNDER_REVIEW"
@@ -559,6 +572,7 @@ export const Constants = {
     Enums: {
       app_role: ["CUSTOMER", "STAFF", "ADMIN", "REPAIR_CENTER"],
       repair_status: ["IN_PROGRESS", "BLOCKED", "DONE"],
+      ticket_priority: ["LOW", "NORMAL", "URGENT"],
       ticket_status: [
         "OPEN",
         "UNDER_REVIEW",
