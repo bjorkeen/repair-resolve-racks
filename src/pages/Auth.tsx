@@ -196,11 +196,24 @@ export default function Auth() {
               <p className="text-muted-foreground text-xs">
                 Create your own account or use these test credentials:
               </p>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>• Customer: customer@test.com / password123</li>
-                <li>• Staff: staff@test.com / password123</li>
-                <li>• Admin: admin@test.com / password123</li>
-              </ul>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="font-medium text-xs mb-1">Customer & Staff:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• Customer: customer@test.com / password123</li>
+                    <li>• Staff: staff1@test.com / password123</li>
+                    <li>• Admin: admin@test.com / password123</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-xs mb-1">Repair Centers:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• Mobile: repair-mobile@test.com / password123</li>
+                    <li>• Laptop: repair-laptop@test.com / password123</li>
+                    <li>• Appliances: repair-appliances@test.com / password123</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
