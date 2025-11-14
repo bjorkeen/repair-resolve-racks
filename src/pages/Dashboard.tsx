@@ -17,6 +17,7 @@ export default function Dashboard() {
     resolved: 0,
   });
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
+  const [returnsPerProduct, setReturnsPerProduct] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +54,42 @@ export default function Dashboard() {
 
         // Get recent tickets (last 5)
         setRecentTickets(tickets.slice(0, 5));
+      }
+
+      // Get returns per product in last 30 days
+      if (userRole === "STAFF" || userRole === "ADMIN" || userRole === "STAFF_MANAGER") {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: returnsData } = await supabase
+          .from("tickets")
+          .select("product_id, products(name, sku)")
+          .eq("ticket_type", "RETURN")
+          .gte("created_at", thirtyDaysAgo.toISOString());
+
+        if (returnsData) {
+          // Group by product and count
+          const productCounts = returnsData.reduce((acc: any, ticket: any) => {
+            const productName = ticket.products?.name || "Unknown Product";
+            const productSku = ticket.products?.sku || "";
+            const key = `${productName}-${productSku}`;
+            
+            if (!acc[key]) {
+              acc[key] = {
+                name: productName,
+                sku: productSku,
+                count: 0,
+              };
+            }
+            acc[key].count++;
+            return acc;
+          }, {});
+
+          const sortedReturns = Object.values(productCounts)
+            .sort((a: any, b: any) => b.count - a.count);
+          
+          setReturnsPerProduct(sortedReturns);
+        }
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -170,6 +207,40 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Returns Per Product - Last 30 Days (Staff/Admin/Manager only) */}
+        {(userRole === "STAFF" || userRole === "ADMIN" || userRole === "STAFF_MANAGER") && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Returns by Product (Last 30 Days)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {returnsPerProduct.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  No returns in the last 30 days
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {returnsPerProduct.map((product: any, index: number) => (
+                    <div
+                      key={`${product.name}-${product.sku}-${index}`}
+                      className="flex items-center justify-between border-b pb-3 last:border-b-0"
+                    >
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">{product.sku}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold">{product.count}</p>
+                        <p className="text-xs text-muted-foreground">returns</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );
