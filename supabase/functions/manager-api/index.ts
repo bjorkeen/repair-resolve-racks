@@ -53,9 +53,9 @@ Deno.serve(async (req) => {
       return await acknowledgeAlert(supabaseClient, path)
     } else if (path.includes('/alerts/') && path.includes('/resolve') && req.method === 'PATCH') {
       return await resolveAlert(supabaseClient, path, req)
-    } else if (path.includes('/metrics') && req.method === 'GET') {
+    } else if (path.includes('/metrics') && (req.method === 'GET' || req.method === 'POST')) {
       return await getMetrics(supabaseClient)
-    } else if (path.includes('/trends') && req.method === 'GET') {
+    } else if (path.includes('/trends') && (req.method === 'GET' || req.method === 'POST')) {
       return await getTrends(supabaseClient)
     } else if (path.includes('/settings') && req.method === 'GET') {
       return await getSettings(supabaseClient)
