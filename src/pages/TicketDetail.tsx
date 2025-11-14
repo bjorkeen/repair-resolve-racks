@@ -471,6 +471,30 @@ export default function TicketDetail() {
                   <p className="text-sm text-muted-foreground mb-2">Issue Description</p>
                   <p className="whitespace-pre-wrap">{ticket.issue}</p>
                 </div>
+
+                {/* Product Photos */}
+                {ticket.photos && Array.isArray(ticket.photos) && ticket.photos.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-3">Product Photos ({ticket.photos.length})</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {ticket.photos.map((photoUrl: string, index: number) => (
+                        <a 
+                          key={index} 
+                          href={photoUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="relative aspect-square rounded-lg overflow-hidden border hover:opacity-80 transition-opacity"
+                        >
+                          <img 
+                            src={photoUrl} 
+                            alt={`Product photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -673,6 +697,67 @@ export default function TicketDetail() {
                 </CardContent>
               </Card>
               </>
+            )}
+
+            {/* Repair Center Decision (for repair centers only) */}
+            {userRole === "REPAIR_CENTER" && ticket.status === "IN_REPAIR" && ticket.ticket_type === "REPAIR" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Repair Decision</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Decision</Label>
+                    <Select 
+                      value={ticket.decision_by_repair_center || ""} 
+                      onValueChange={async (value) => {
+                        try {
+                          const { error } = await supabase
+                            .from("tickets")
+                            .update({ 
+                              decision_by_repair_center: value,
+                              status: value === "Replace" ? "REPLACEMENT_APPROVED" : ticket.status
+                            })
+                            .eq("id", id);
+
+                          if (error) throw error;
+
+                          await supabase.from("ticket_events").insert({
+                            ticket_id: id,
+                            by_user_id: user?.id,
+                            type: "REPAIR_DECISION",
+                            note: `Repair center decided: ${value}`,
+                          });
+
+                          toast({
+                            title: "Decision recorded",
+                            description: `You have chosen to ${value.toLowerCase()} this product`,
+                          });
+
+                          loadTicketDetails();
+                        } catch (error) {
+                          toast({
+                            variant: "destructive",
+                            title: "Error",
+                            description: "Failed to record decision",
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select repair decision" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Repair">Repair Product</SelectItem>
+                        <SelectItem value="Replace">Replace Product</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Choose whether to repair or replace the faulty product based on the damage assessment.
+                  </p>
+                </CardContent>
+              </Card>
             )}
 
             {/* Customer Cancel Button */}
