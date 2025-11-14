@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Tickets from "./pages/Tickets";
 import NewTicket from "./pages/NewTicket";
 import TicketDetail from "./pages/TicketDetail";
+import Policy from "./pages/Policy";
 import NotFound from "./pages/NotFound";
 import AdminRepairCenters from "./pages/admin/RepairCenters";
 import AdminUserRoles from "./pages/admin/UserRoles";
@@ -31,6 +32,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/policy" element={<Policy />} />
             <Route
               path="/dashboard"
               element={

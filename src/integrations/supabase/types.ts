@@ -286,15 +286,18 @@ export type Database = {
           created_at: string
           customer_email: string
           customer_name: string
+          decision_by_repair_center: string | null
           estimated_completion_date: string | null
           id: string
           issue: string
           owner_id: string
+          photos: Json | null
           priority: Database["public"]["Enums"]["ticket_priority"] | null
           product_id: string
           purchase_date: string | null
           repair_center_id: string | null
           repair_status: Database["public"]["Enums"]["repair_status"] | null
+          return_reason: Database["public"]["Enums"]["return_reason"] | null
           serial_number: string
           sla_due_at: string | null
           sla_hours: number | null
@@ -309,15 +312,18 @@ export type Database = {
           created_at?: string
           customer_email: string
           customer_name: string
+          decision_by_repair_center?: string | null
           estimated_completion_date?: string | null
           id?: string
           issue: string
           owner_id: string
+          photos?: Json | null
           priority?: Database["public"]["Enums"]["ticket_priority"] | null
           product_id: string
           purchase_date?: string | null
           repair_center_id?: string | null
           repair_status?: Database["public"]["Enums"]["repair_status"] | null
+          return_reason?: Database["public"]["Enums"]["return_reason"] | null
           serial_number: string
           sla_due_at?: string | null
           sla_hours?: number | null
@@ -332,15 +338,18 @@ export type Database = {
           created_at?: string
           customer_email?: string
           customer_name?: string
+          decision_by_repair_center?: string | null
           estimated_completion_date?: string | null
           id?: string
           issue?: string
           owner_id?: string
+          photos?: Json | null
           priority?: Database["public"]["Enums"]["ticket_priority"] | null
           product_id?: string
           purchase_date?: string | null
           repair_center_id?: string | null
           repair_status?: Database["public"]["Enums"]["repair_status"] | null
+          return_reason?: Database["public"]["Enums"]["return_reason"] | null
           serial_number?: string
           sla_due_at?: string | null
           sla_hours?: number | null
@@ -436,6 +445,7 @@ export type Database = {
     Enums: {
       app_role: "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER"
       repair_status: "IN_PROGRESS" | "BLOCKED" | "DONE"
+      return_reason: "WITHIN_15_DAYS" | "AFTER_15_DAYS"
       ticket_priority: "LOW" | "NORMAL" | "URGENT"
       ticket_status:
         | "OPEN"
@@ -445,6 +455,11 @@ export type Database = {
         | "RESOLVED"
         | "REJECTED"
         | "CANCELLED"
+        | "RETURN_REQUESTED"
+        | "RETURN_APPROVED"
+        | "RETURN_COMPLETED"
+        | "REPLACEMENT_APPROVED"
+        | "REJECTED_OUT_OF_WARRANTY"
       ticket_type: "REPAIR" | "RETURN"
     }
     CompositeTypes: {
@@ -575,6 +590,7 @@ export const Constants = {
     Enums: {
       app_role: ["CUSTOMER", "STAFF", "ADMIN", "REPAIR_CENTER"],
       repair_status: ["IN_PROGRESS", "BLOCKED", "DONE"],
+      return_reason: ["WITHIN_15_DAYS", "AFTER_15_DAYS"],
       ticket_priority: ["LOW", "NORMAL", "URGENT"],
       ticket_status: [
         "OPEN",
@@ -584,6 +600,11 @@ export const Constants = {
         "RESOLVED",
         "REJECTED",
         "CANCELLED",
+        "RETURN_REQUESTED",
+        "RETURN_APPROVED",
+        "RETURN_COMPLETED",
+        "REPLACEMENT_APPROVED",
+        "REJECTED_OUT_OF_WARRANTY",
       ],
       ticket_type: ["REPAIR", "RETURN"],
     },

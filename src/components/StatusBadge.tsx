@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type TicketStatus = "OPEN" | "UNDER_REVIEW" | "IN_REPAIR" | "AWAITING_CUSTOMER" | "RESOLVED" | "REJECTED";
+type TicketStatus = "OPEN" | "UNDER_REVIEW" | "IN_REPAIR" | "AWAITING_CUSTOMER" | "RESOLVED" | "REJECTED" | "RETURN_REQUESTED" | "RETURN_APPROVED" | "RETURN_COMPLETED" | "REPLACEMENT_APPROVED" | "REJECTED_OUT_OF_WARRANTY";
 
 interface StatusBadgeProps {
   status: TicketStatus;
@@ -32,6 +32,26 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     },
     REJECTED: {
       label: "Rejected",
+      className: "bg-status-rejected text-white",
+    },
+    RETURN_REQUESTED: {
+      label: "Return Requested",
+      className: "bg-blue-500 text-white",
+    },
+    RETURN_APPROVED: {
+      label: "Return Approved",
+      className: "bg-green-500 text-white",
+    },
+    RETURN_COMPLETED: {
+      label: "Return Completed",
+      className: "bg-status-resolved text-white",
+    },
+    REPLACEMENT_APPROVED: {
+      label: "Replacement Approved",
+      className: "bg-purple-500 text-white",
+    },
+    REJECTED_OUT_OF_WARRANTY: {
+      label: "Rejected - Out of Warranty",
       className: "bg-status-rejected text-white",
     },
   };

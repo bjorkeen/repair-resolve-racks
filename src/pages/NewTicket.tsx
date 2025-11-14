@@ -24,13 +24,15 @@ const ticketSchema = z.object({
   customerEmail: z.string().email("Invalid email address").max(255),
   productId: z.string().uuid("Please select a product"),
   serialNumber: z.string().min(3, "Serial number is required").max(50),
-  purchaseDate: z.string().optional(),
+  purchaseDate: z.string().min(1, "Purchase date is required"),
   issue: z.string().min(10, "Please describe the issue in detail").max(1000),
   ticketType: z.enum(["REPAIR", "RETURN"], { required_error: "Please select a ticket type" }),
+  returnReason: z.enum(["WITHIN_15_DAYS", "AFTER_15_DAYS"]).optional(),
 });
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_PHOTOS = 5;
 
 export default function NewTicket() {
   const { user } = useAuth();
@@ -47,6 +49,7 @@ export default function NewTicket() {
     purchaseDate: "",
     issue: "",
     ticketType: "" as "REPAIR" | "RETURN" | "",
+    returnReason: "" as "WITHIN_15_DAYS" | "AFTER_15_DAYS" | "",
   });
 
   useEffect(() => {
@@ -71,8 +74,25 @@ export default function NewTicket() {
     return monthsSincePurchase <= product.warranty_months;
   };
 
+  const isReturnEligible = () => {
+    if (!formData.purchaseDate) return false;
+    const purchase = new Date(formData.purchaseDate);
+    const now = new Date();
+    const daysSincePurchase = Math.floor((now.getTime() - purchase.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSincePurchase <= 15;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
+    
+    if (files.length + selectedFiles.length > MAX_PHOTOS) {
+      toast({
+        variant: "destructive",
+        title: "Too many files",
+        description: `You can only upload up to ${MAX_PHOTOS} photos`,
+      });
+      return;
+    }
     
     // Validate files
     const validFiles = selectedFiles.filter((file) => {
@@ -88,7 +108,7 @@ export default function NewTicket() {
         toast({
           variant: "destructive",
           title: "Invalid file type",
-          description: `${file.name} is not an allowed file type`,
+          description: `${file.name} must be a JPEG, PNG, or WebP image`,
         });
         return false;
       }
@@ -108,16 +128,60 @@ export default function NewTicket() {
 
     try {
       // Validate form data
-      ticketSchema.parse(formData);
+      const validationData = {
+        ...formData,
+        returnReason: formData.ticketType === "RETURN" ? formData.returnReason : undefined,
+      };
+      ticketSchema.parse(validationData);
 
       // Get selected product
       const product = products.find((p) => p.id === formData.productId);
       if (!product) throw new Error("Product not found");
 
+      // Validate return period
+      if (formData.ticketType === "RETURN" && formData.returnReason === "WITHIN_15_DAYS") {
+        if (!isReturnEligible()) {
+          toast({
+            variant: "destructive",
+            title: "Return period expired",
+            description: "Returns are only accepted within 15 days of purchase",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       // Calculate warranty eligibility
       const warrantyEligible = formData.purchaseDate
         ? calculateWarrantyEligibility(product, formData.purchaseDate)
         : false;
+
+      // Determine initial status
+      let initialStatus = "OPEN";
+      if (formData.ticketType === "RETURN") {
+        initialStatus = "RETURN_REQUESTED";
+      } else if (formData.ticketType === "REPAIR" && !warrantyEligible) {
+        initialStatus = "REJECTED_OUT_OF_WARRANTY";
+      }
+
+      // Upload photos first to get URLs
+      const photoUrls: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          const filePath = `${user?.id}/${Date.now()}-${file.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from("ticket-attachments")
+            .upload(filePath, file);
+
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("ticket-attachments")
+              .getPublicUrl(filePath);
+            photoUrls.push(publicUrl);
+          }
+        }
+      }
 
       // Create ticket
       const { data: ticket, error: ticketError } = await supabase
@@ -131,30 +195,21 @@ export default function NewTicket() {
           purchase_date: formData.purchaseDate || null,
           issue: formData.issue,
           warranty_eligible: warrantyEligible,
-          status: "OPEN",
+          status: initialStatus,
           ticket_type: formData.ticketType,
+          return_reason: formData.ticketType === "RETURN" ? formData.returnReason : null,
+          photos: photoUrls.length > 0 ? photoUrls : null,
         } as any)
         .select()
         .single();
 
       if (ticketError) throw ticketError;
 
-      // Upload files if any
-      if (files.length > 0) {
-        for (const file of files) {
-          const filePath = `${user?.id}/${ticket.id}/${file.name}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from("ticket-attachments")
-            .upload(filePath, file);
-
-          if (uploadError) {
-            console.error("Error uploading file:", uploadError);
-            continue;
-          }
-
-          // Save attachment record
-          await supabase.from("ticket_attachments").insert({
+      // Save attachment records for photos
+      if (files.length > 0 && photoUrls.length > 0) {
+        const attachmentPromises = files.map((file, index) => {
+          const filePath = `${user?.id}/${Date.now()}-${file.name}`;
+          return supabase.from("ticket_attachments").insert({
             ticket_id: ticket.id,
             file_name: file.name,
             file_path: filePath,
@@ -162,7 +217,8 @@ export default function NewTicket() {
             mime_type: file.type,
             uploaded_by: user?.id,
           });
-        }
+        });
+        await Promise.all(attachmentPromises);
       }
 
       // Create initial event
@@ -275,6 +331,39 @@ export default function NewTicket() {
                 </div>
               </div>
 
+              {/* Return Reason (conditional) */}
+              {formData.ticketType === "RETURN" && (
+                <div className="space-y-2">
+                  <Label htmlFor="returnReason">Return Reason *</Label>
+                  <Select
+                    value={formData.returnReason}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, returnReason: value as "WITHIN_15_DAYS" | "AFTER_15_DAYS" })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select return reason" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem 
+                        value="WITHIN_15_DAYS" 
+                        disabled={!isReturnEligible()}
+                      >
+                        Within 15 Days {!isReturnEligible() && "(Expired)"}
+                      </SelectItem>
+                      <SelectItem value="AFTER_15_DAYS">
+                        After 15 Days (Special Request)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.purchaseDate && !isReturnEligible() && (
+                    <p className="text-xs text-destructive">
+                      Regular return period has expired. Select "After 15 Days" to submit a special request.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Product Information */}
               <div className="space-y-4">
                 <h3 className="font-semibold">Product Information</h3>
@@ -313,7 +402,7 @@ export default function NewTicket() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="purchaseDate">Purchase Date (Optional)</Label>
+                  <Label htmlFor="purchaseDate">Purchase Date *</Label>
                   <Input
                     id="purchaseDate"
                     type="date"
@@ -322,9 +411,10 @@ export default function NewTicket() {
                       setFormData({ ...formData, purchaseDate: e.target.value })
                     }
                     max={new Date().toISOString().split("T")[0]}
+                    required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Used to determine warranty eligibility
+                    Required to determine warranty and return eligibility
                   </p>
                 </div>
               </div>
@@ -345,23 +435,24 @@ export default function NewTicket() {
                 </p>
               </div>
 
-              {/* File Attachments */}
-              <div className="space-y-2">
-                <Label htmlFor="attachments">Attachments (Optional)</Label>
-                <Input
-                  id="attachments"
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".jpg,.jpeg,.png,.webp,.pdf"
-                  multiple
-                  disabled={loading}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Upload photos or documents (max 5MB per file, JPG/PNG/WEBP/PDF only)
-                </p>
-                {files.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {files.map((file, index) => (
+              {/* Photo Upload (for REPAIR only) */}
+              {formData.ticketType === "REPAIR" && (
+                <div className="space-y-2">
+                  <Label htmlFor="photos">Product Photos {files.length > 0 && `(${files.length}/${MAX_PHOTOS})`}</Label>
+                  <Input
+                    id="photos"
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".jpg,.jpeg,.png,.webp"
+                    multiple
+                    disabled={loading || files.length >= MAX_PHOTOS}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Upload up to {MAX_PHOTOS} photos of the faulty product (max 5MB per photo, JPG/PNG/WebP only)
+                  </p>
+                  {files.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {files.map((file, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between p-2 rounded border bg-accent/50"
@@ -379,8 +470,9 @@ export default function NewTicket() {
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               {/* Submit */}
               <div className="flex gap-4">
