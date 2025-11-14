@@ -10,7 +10,7 @@ interface DemoAccount {
   email: string;
   password: string;
   fullName: string;
-  role: 'CUSTOMER' | 'STAFF' | 'ADMIN' | 'REPAIR_CENTER';
+  role: 'CUSTOMER' | 'STAFF' | 'ADMIN' | 'REPAIR_CENTER' | 'STAFF_MANAGER';
 }
 
 const demoAccounts: DemoAccount[] = [
@@ -43,6 +43,12 @@ const demoAccounts: DemoAccount[] = [
     password: 'password123',
     fullName: 'Test Admin',
     role: 'ADMIN'
+  },
+  {
+    email: 'manager@test.com',
+    password: 'password123',
+    fullName: 'Test Staff Manager',
+    role: 'STAFF_MANAGER'
   },
   {
     email: 'repair-mobile@test.com',
