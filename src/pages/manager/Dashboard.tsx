@@ -69,6 +69,7 @@ export default function ManagerDashboard() {
   const [topFaultyProducts, setTopFaultyProducts] = useState<any[]>([]);
   const [repairCenterPerformance, setRepairCenterPerformance] = useState<any[]>([]);
   const [dailyTrend, setDailyTrend] = useState<any[]>([]);
+  const [returnsPerProduct, setReturnsPerProduct] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Filters
@@ -128,6 +129,40 @@ export default function ManagerDashboard() {
 
       if (trendsResponse.data?.data) {
         setDailyTrend(trendsResponse.data.data.dailyTrend);
+      }
+
+      // Load returns per product in last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: returnsData } = await supabase
+        .from("tickets")
+        .select("product_id, products(name, sku)")
+        .eq("ticket_type", "RETURN")
+        .gte("created_at", thirtyDaysAgo.toISOString());
+
+      if (returnsData) {
+        // Group by product and count
+        const productCounts = returnsData.reduce((acc: any, ticket: any) => {
+          const productName = ticket.products?.name || "Unknown Product";
+          const productSku = ticket.products?.sku || "";
+          const key = `${productName}-${productSku}`;
+          
+          if (!acc[key]) {
+            acc[key] = {
+              name: productName,
+              sku: productSku,
+              count: 0,
+            };
+          }
+          acc[key].count++;
+          return acc;
+        }, {});
+
+        const sortedReturns = Object.values(productCounts)
+          .sort((a: any, b: any) => b.count - a.count);
+        
+        setReturnsPerProduct(sortedReturns);
       }
     } catch (error: any) {
       console.error('Error loading dashboard:', error);
@@ -486,6 +521,41 @@ export default function ManagerDashboard() {
                 )}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+
+        {/* Returns Per Product - Last 30 Days */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Returns by Product (Last 30 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {returnsPerProduct.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12">
+                No returns in the last 30 days
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-right">Return Count</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {returnsPerProduct.map((product: any, index: number) => (
+                    <TableRow key={`${product.name}-${product.sku}-${index}`}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.sku}</TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-lg font-bold">{product.count}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
