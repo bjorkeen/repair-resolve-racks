@@ -403,7 +403,12 @@ export default function TicketDetail() {
               <Badge variant={ticket.ticket_type === "RETURN" ? "destructive" : "default"}>
                 {ticket.ticket_type === "RETURN" ? "Return Request" : "Repair Request"}
               </Badge>
-              {ticket.warranty_eligible && (
+              {ticket.ticket_type === "RETURN" && ticket.purchase_date && (
+                <Badge className="bg-success text-success-foreground">
+                  Within 15 days of purchase
+                </Badge>
+              )}
+              {ticket.ticket_type === "REPAIR" && ticket.warranty_eligible && (
                 <Badge className="bg-success text-success-foreground">
                   Under Warranty
                 </Badge>
@@ -671,7 +676,9 @@ export default function TicketDetail() {
                       <SelectContent>
                         <SelectItem value="OPEN">Open</SelectItem>
                         <SelectItem value="UNDER_REVIEW">Under Review</SelectItem>
-                        <SelectItem value="IN_REPAIR">In Repair</SelectItem>
+                        {ticket.ticket_type !== "RETURN" && (
+                          <SelectItem value="IN_REPAIR">In Repair</SelectItem>
+                        )}
                         <SelectItem value="AWAITING_CUSTOMER">Awaiting Customer</SelectItem>
                         <SelectItem value="RESOLVED">Resolved</SelectItem>
                         <SelectItem value="REJECTED">Rejected</SelectItem>
