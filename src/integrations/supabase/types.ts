@@ -14,6 +14,100 @@ export type Database = {
   }
   public: {
     Tables: {
+      alerts: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          metric_value: number | null
+          product_id: string | null
+          repair_center_id: string | null
+          resolution_note: string | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          status: Database["public"]["Enums"]["alert_status"]
+          threshold: number | null
+          ticket_id: string | null
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          metric_value?: number | null
+          product_id?: string | null
+          repair_center_id?: string | null
+          resolution_note?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          status?: Database["public"]["Enums"]["alert_status"]
+          threshold?: number | null
+          ticket_id?: string | null
+          title: string
+          type: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          metric_value?: number | null
+          product_id?: string | null
+          repair_center_id?: string | null
+          resolution_note?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          status?: Database["public"]["Enums"]["alert_status"]
+          threshold?: number | null
+          ticket_id?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_repair_center_id_fkey"
+            columns: ["repair_center_id"]
+            isOneToOne: false
+            referencedRelation: "repair_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manager_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -443,6 +537,15 @@ export type Database = {
       }
     }
     Enums: {
+      alert_severity: "LOW" | "MEDIUM" | "HIGH"
+      alert_status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED"
+      alert_type:
+        | "HIGH_FAULT_RATE_PER_PRODUCT"
+        | "DELAYED_REPAIRS"
+        | "HIGH_RETURN_RATE"
+        | "REPAIR_CENTER_UNDERPERFORMANCE"
+        | "DUPLICATE_SERIAL_CLAIMS"
+        | "OUT_OF_WARRANTY_SPIKE"
       app_role:
         | "CUSTOMER"
         | "STAFF"
@@ -593,6 +696,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity: ["LOW", "MEDIUM", "HIGH"],
+      alert_status: ["OPEN", "ACKNOWLEDGED", "RESOLVED"],
+      alert_type: [
+        "HIGH_FAULT_RATE_PER_PRODUCT",
+        "DELAYED_REPAIRS",
+        "HIGH_RETURN_RATE",
+        "REPAIR_CENTER_UNDERPERFORMANCE",
+        "DUPLICATE_SERIAL_CLAIMS",
+        "OUT_OF_WARRANTY_SPIKE",
+      ],
       app_role: [
         "CUSTOMER",
         "STAFF",

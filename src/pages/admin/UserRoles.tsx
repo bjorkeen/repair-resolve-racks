@@ -33,7 +33,7 @@ import { format } from "date-fns";
 
 interface UserWithRole {
   user_id: string;
-  role: "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER";
+  role: "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER" | "STAFF_MANAGER";
   email: string;
   created_at: string;
 }
@@ -43,7 +43,7 @@ export default function UserRoles() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
-  const [newRole, setNewRole] = useState<"CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER" | "">("");
+  const [newRole, setNewRole] = useState<"CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER" | "STAFF_MANAGER" | "">("");
 
   useEffect(() => {
     loadUsers();
@@ -117,6 +117,8 @@ export default function UserRoles() {
         return "bg-destructive text-destructive-foreground";
       case "STAFF":
         return "bg-primary text-primary-foreground";
+      case "STAFF_MANAGER":
+        return "bg-purple-500 text-white";
       case "REPAIR_CENTER":
         return "bg-accent text-accent-foreground";
       default:
@@ -248,13 +250,14 @@ export default function UserRoles() {
               </div>
               <div className="space-y-2">
                 <Label>New Role</Label>
-                <Select value={newRole} onValueChange={(value) => setNewRole(value as "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER")}>
+                <Select value={newRole} onValueChange={(value) => setNewRole(value as "CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER" | "STAFF_MANAGER")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CUSTOMER">Customer</SelectItem>
                     <SelectItem value="STAFF">Staff</SelectItem>
+                    <SelectItem value="STAFF_MANAGER">Staff Manager</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>
                     <SelectItem value="REPAIR_CENTER">Repair Center</SelectItem>
                   </SelectContent>

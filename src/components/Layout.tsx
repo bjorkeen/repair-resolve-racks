@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AlertBell } from "@/components/AlertBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,8 @@ export function Layout({ children }: LayoutProps) {
         return "bg-destructive text-destructive-foreground";
       case "STAFF":
         return "bg-primary text-primary-foreground";
+      case "STAFF_MANAGER":
+        return "bg-purple-500 text-white";
       case "REPAIR_CENTER":
         return "bg-accent text-accent-foreground";
       default:
@@ -87,6 +90,14 @@ export function Layout({ children }: LayoutProps) {
                     </Button>
                   </>
                 )}
+                {(userRole === "STAFF_MANAGER" || userRole === "ADMIN") && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/manager/dashboard" className="gap-2">
+                      <Shield className="h-4 w-4" />
+                      Manager Dashboard
+                    </Link>
+                  </Button>
+                )}
                 {userRole === "ADMIN" && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -129,10 +140,11 @@ export function Layout({ children }: LayoutProps) {
 
             {/* User Menu */}
             <div className="flex items-center gap-3">
+              {(userRole === "STAFF_MANAGER" || userRole === "ADMIN") && <AlertBell />}
+              <NotificationBell />
               {userRole && (
                 <Badge className={getRoleBadgeColor(userRole)}>{userRole}</Badge>
               )}
-              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">

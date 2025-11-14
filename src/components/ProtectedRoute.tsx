@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER")[];
+  allowedRoles?: ("CUSTOMER" | "STAFF" | "ADMIN" | "REPAIR_CENTER" | "STAFF_MANAGER")[];
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
