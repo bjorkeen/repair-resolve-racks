@@ -191,7 +191,7 @@ export default function Auth() {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 p-4 bg-muted rounded-lg text-sm">
+              <div className="mt-6 p-4 bg-muted rounded-lg text-sm">
               <p className="font-medium mb-2">Demo Accounts:</p>
               <p className="text-muted-foreground text-xs">
                 Create your own account or use these test credentials:
@@ -201,7 +201,10 @@ export default function Auth() {
                   <p className="font-medium text-xs mb-1">Customer & Staff:</p>
                   <ul className="space-y-1 text-xs">
                     <li>• Customer: customer@test.com / password123</li>
-                    <li>• Staff: staff1@test.com / password123</li>
+                    <li>• Staff 1: staff1@test.com / password123</li>
+                    <li>• Staff 2: staff2@test.com / password123</li>
+                    <li>• Staff 3: staff3@test.com / password123</li>
+                    <li>• Manager: manager@test.com / password123</li>
                     <li>• Admin: admin@test.com / password123</li>
                   </ul>
                 </div>
