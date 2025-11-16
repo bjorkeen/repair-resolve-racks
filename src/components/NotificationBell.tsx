@@ -29,12 +29,8 @@ export function NotificationBell() {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
 
-  // Only show for staff and admins
-  if (!user || (userRole !== "STAFF" && userRole !== "ADMIN")) {
-    return null;
-  }
-
   useEffect(() => {
+    if (!user) return;
     loadNotifications();
     setupRealtimeSubscription();
   }, [user]);
@@ -119,6 +115,11 @@ export function NotificationBell() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   };
+
+  // Only show for staff and admins
+  if (!user || (userRole !== "STAFF" && userRole !== "ADMIN")) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
