@@ -23,6 +23,7 @@ import { format, differenceInHours } from "date-fns";
 import { RepairCenterDialog } from "@/components/RepairCenterDialog";
 import { TicketAttachments } from "@/components/TicketAttachments";
 import { TicketComments } from "@/components/TicketComments";
+import { TicketStatusTimeline } from "@/components/TicketStatusTimeline";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -45,6 +46,56 @@ export default function TicketDetail() {
     if (id) {
       loadTicketDetails();
     }
+  }, [id]);
+
+  // Real-time updates for ticket status
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`ticket-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tickets',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log('Ticket updated:', payload);
+          if (payload.eventType === 'UPDATE') {
+            setTicket((prev: any) => ({ ...prev, ...payload.new }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ticket_events',
+          filter: `ticket_id=eq.${id}`,
+        },
+        async (payload) => {
+          console.log('New event:', payload);
+          // Fetch the new event with profile data
+          const { data } = await supabase
+            .from('ticket_events')
+            .select('*, profiles:by_user_id (full_name)')
+            .eq('id', payload.new.id)
+            .single();
+          
+          if (data) {
+            setEvents((prev) => [data, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   const loadTicketDetails = async () => {
@@ -509,8 +560,14 @@ export default function TicketDetail() {
             {/* Comments Section */}
             <TicketComments ticketId={id!} />
 
+            {/* Status Timeline for Customers */}
+            {userRole === "CUSTOMER" && (
+              <TicketStatusTimeline events={events} currentStatus={ticket.status} />
+            )}
+
             {/* Event Timeline */}
-            <Card>
+            {(userRole === "STAFF" || userRole === "ADMIN" || userRole === "REPAIR_CENTER") && (
+              <Card>
               <CardHeader>
                 <CardTitle>Activity Timeline</CardTitle>
               </CardHeader>
@@ -548,6 +605,7 @@ export default function TicketDetail() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
 
           {/* Sidebar */}
