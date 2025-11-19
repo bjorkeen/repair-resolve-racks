@@ -23,7 +23,7 @@ export function TicketComments({ ticketId }: TicketCommentsProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const isStaff = userRole === "STAFF" || userRole === "ADMIN";
+  const isStaff = userRole === "STAFF" || userRole === "ADMIN" || userRole === "STAFF_MANAGER";
 
   useEffect(() => {
     loadComments();
