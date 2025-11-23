@@ -22,12 +22,20 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Package } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Product {
   id: string;
   name: string;
   sku: string;
   warranty_months: number;
+  product_type: string | null;
   created_at: string;
 }
 
@@ -40,6 +48,7 @@ export default function Products() {
     name: "",
     sku: "",
     warranty_months: "",
+    product_type: "",
   });
 
   useEffect(() => {
@@ -67,10 +76,11 @@ export default function Products() {
     e.preventDefault();
 
     try {
-      const productData = {
+      const productData: any = {
         name: formData.name,
         sku: formData.sku,
         warranty_months: parseInt(formData.warranty_months),
+        product_type: formData.product_type || null,
       };
 
       if (editingProduct) {
@@ -121,13 +131,14 @@ export default function Products() {
       name: product.name,
       sku: product.sku,
       warranty_months: product.warranty_months.toString(),
+      product_type: product.product_type || "",
     });
     setDialogOpen(true);
   };
 
   const resetForm = () => {
     setEditingProduct(null);
-    setFormData({ name: "", sku: "", warranty_months: "" });
+    setFormData({ name: "", sku: "", warranty_months: "", product_type: "" });
   };
 
   if (loading) {
@@ -199,6 +210,25 @@ export default function Products() {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product_type">Product Type</Label>
+                  <Select
+                    value={formData.product_type}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, product_type: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="PHONE">Phone</SelectItem>
+                      <SelectItem value="LAPTOP">Laptop</SelectItem>
+                      <SelectItem value="TABLET">Tablet</SelectItem>
+                      <SelectItem value="TV">TV</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex gap-2">
                   <Button type="submit" className="flex-1">
                     {editingProduct ? "Update" : "Create"}
@@ -232,6 +262,7 @@ export default function Products() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>SKU</TableHead>
+                  <TableHead>Product Type</TableHead>
                   <TableHead>Warranty</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -239,7 +270,7 @@ export default function Products() {
               <TableBody>
                 {products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
+                    <TableCell colSpan={5} className="text-center py-8">
                       No products found. Add one to get started.
                     </TableCell>
                   </TableRow>
@@ -248,6 +279,13 @@ export default function Products() {
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell>{product.sku}</TableCell>
+                      <TableCell>
+                        {product.product_type ? (
+                          <span className="capitalize">{product.product_type.toLowerCase()}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>{product.warranty_months} months</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

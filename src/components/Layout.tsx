@@ -91,12 +91,26 @@ export function Layout({ children }: LayoutProps) {
                   </>
                 )}
                 {(userRole === "STAFF_MANAGER" || userRole === "ADMIN") && (
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to="/manager/dashboard" className="gap-2">
-                      <Shield className="h-4 w-4" />
-                      Manager Dashboard
-                    </Link>
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Shield className="h-4 w-4" />
+                        Manager
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem asChild>
+                        <Link to="/manager/dashboard" className="w-full cursor-pointer">
+                          Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/manager/feedback" className="w-full cursor-pointer">
+                          Feedback
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
                 {userRole === "ADMIN" && (
                   <DropdownMenu>

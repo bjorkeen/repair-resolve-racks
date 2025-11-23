@@ -156,12 +156,21 @@ export default function NewTicket() {
         ? calculateWarrantyEligibility(product, formData.purchaseDate)
         : false;
 
+      // For out-of-warranty repairs, reject immediately with popup
+      if (formData.ticketType === "REPAIR" && !warrantyEligible) {
+        toast({
+          variant: "destructive",
+          title: "Out of Warranty",
+          description: "We cannot process out-of-warranty repairs. This request will be rejected. Please contact Electronics for more information.",
+        });
+        setLoading(false);
+        return;
+      }
+
       // Determine initial status
       let initialStatus = "OPEN";
       if (formData.ticketType === "RETURN") {
         initialStatus = "RETURN_REQUESTED";
-      } else if (formData.ticketType === "REPAIR" && !warrantyEligible) {
-        initialStatus = "REJECTED_OUT_OF_WARRANTY";
       }
 
       // Upload photos first to get URLs
