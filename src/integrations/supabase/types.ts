@@ -151,6 +151,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          product_type: Database["public"]["Enums"]["product_type"] | null
           sku: string
           warranty_months: number
         }
@@ -158,6 +159,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          product_type?: Database["public"]["Enums"]["product_type"] | null
           sku: string
           warranty_months?: number
         }
@@ -165,6 +167,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          product_type?: Database["public"]["Enums"]["product_type"] | null
           sku?: string
           warranty_months?: number
         }
@@ -552,6 +555,7 @@ export type Database = {
         | "ADMIN"
         | "REPAIR_CENTER"
         | "STAFF_MANAGER"
+      product_type: "PHONE" | "LAPTOP" | "TABLET" | "TV"
       repair_status: "IN_PROGRESS" | "BLOCKED" | "DONE"
       return_reason: "WITHIN_15_DAYS" | "AFTER_15_DAYS"
       ticket_priority: "LOW" | "NORMAL" | "URGENT"
@@ -568,6 +572,12 @@ export type Database = {
         | "RETURN_COMPLETED"
         | "REPLACEMENT_APPROVED"
         | "REJECTED_OUT_OF_WARRANTY"
+        | "SHIPPING"
+        | "PRODUCT_EVALUATION"
+        | "REPLACEMENT_INITIATED"
+        | "REPAIR_COMPLETED"
+        | "SHIPPED_TO_CUSTOMER"
+        | "CLOSED"
       ticket_type: "REPAIR" | "RETURN"
     }
     CompositeTypes: {
@@ -713,6 +723,7 @@ export const Constants = {
         "REPAIR_CENTER",
         "STAFF_MANAGER",
       ],
+      product_type: ["PHONE", "LAPTOP", "TABLET", "TV"],
       repair_status: ["IN_PROGRESS", "BLOCKED", "DONE"],
       return_reason: ["WITHIN_15_DAYS", "AFTER_15_DAYS"],
       ticket_priority: ["LOW", "NORMAL", "URGENT"],
@@ -729,6 +740,12 @@ export const Constants = {
         "RETURN_COMPLETED",
         "REPLACEMENT_APPROVED",
         "REJECTED_OUT_OF_WARRANTY",
+        "SHIPPING",
+        "PRODUCT_EVALUATION",
+        "REPLACEMENT_INITIATED",
+        "REPAIR_COMPLETED",
+        "SHIPPED_TO_CUSTOMER",
+        "CLOSED",
       ],
       ticket_type: ["REPAIR", "RETURN"],
     },
