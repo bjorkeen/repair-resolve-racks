@@ -377,6 +377,41 @@ export type Database = {
           },
         ]
       }
+      ticket_feedback: {
+        Row: {
+          comments: string | null
+          created_at: string
+          id: string
+          rating: number
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_feedback_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: true
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           assigned_to: string | null
@@ -527,6 +562,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_repair_center_capacity: { Args: never; Returns: undefined }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
