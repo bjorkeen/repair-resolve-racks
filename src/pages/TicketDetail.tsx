@@ -18,12 +18,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar, Mail, User, Package, Hash, X, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, User, Package, Hash, X, Clock, Download } from "lucide-react";
 import { format, differenceInHours } from "date-fns";
 import { RepairCenterDialog } from "@/components/RepairCenterDialog";
 import { TicketAttachments } from "@/components/TicketAttachments";
 import { TicketComments } from "@/components/TicketComments";
 import { TicketStatusTimeline } from "@/components/TicketStatusTimeline";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 
 export default function TicketDetail() {
   const { id } = useParams();
@@ -41,12 +42,26 @@ export default function TicketDetail() {
   const [statusNote, setStatusNote] = useState("");
   const [showRepairCenterDialog, setShowRepairCenterDialog] = useState(false);
   const [recommendedRepairCenter, setRecommendedRepairCenter] = useState<any>(null);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [hasFeedback, setHasFeedback] = useState(false);
 
   useEffect(() => {
     if (id) {
       loadTicketDetails();
+      checkFeedback();
     }
   }, [id]);
+
+  const checkFeedback = async () => {
+    if (!id || !user) return;
+    const { data } = await supabase
+      .from("ticket_feedback")
+      .select("id")
+      .eq("ticket_id", id)
+      .eq("user_id", user.id)
+      .single();
+    setHasFeedback(!!data);
+  };
 
   // Real-time updates for ticket status
   useEffect(() => {
@@ -376,7 +391,42 @@ export default function TicketDetail() {
 
   if (!ticket) return null;
 
-  const canUpdateStatus = userRole === "STAFF" || userRole === "ADMIN";
+  const handleShippingLabel = async () => {
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .update({ status: "SHIPPING" as any })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await supabase.from("ticket_events").insert({
+        ticket_id: id,
+        by_user_id: user?.id,
+        type: "STATUS_CHANGED",
+        note: "Shipping label requested - Status changed to SHIPPING",
+      });
+
+      toast({
+        title: "Shipping label generated",
+        description: "Your shipping label has been generated. The ticket is now in shipping status.",
+      });
+
+      loadTicketDetails();
+    } catch (error) {
+      console.error("Error updating to shipping:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate shipping label",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const canUpdateStatus = userRole === "STAFF" || userRole === "ADMIN" || userRole === "STAFF_MANAGER";
   const canCancelTicket = 
     userRole === "CUSTOMER" && 
     ticket.owner_id === user?.id && 
@@ -450,7 +500,7 @@ export default function TicketDetail() {
             <div className="flex items-center gap-3 mb-1 flex-wrap">
               <h1 className="text-3xl font-bold">Ticket #{ticket.ticket_number}</h1>
               <StatusBadge status={ticket.status} />
-              <PriorityBadge priority={ticket.priority || "NORMAL"} />
+              {userRole !== "CUSTOMER" && <PriorityBadge priority={ticket.priority || "NORMAL"} />}
               <Badge variant={ticket.ticket_type === "RETURN" ? "destructive" : "default"}>
                 {ticket.ticket_type === "RETURN" ? "Return Request" : "Repair Request"}
               </Badge>
@@ -474,6 +524,50 @@ export default function TicketDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Shipping Label Button for Customers */}
+            {userRole === "CUSTOMER" && 
+             ticket.ticket_type === "REPAIR" && 
+             ticket.warranty_eligible && 
+             ticket.status === "OPEN" && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">Ready to Ship?</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Download your shipping label and send your device for repair
+                      </p>
+                    </div>
+                    <Button onClick={handleShippingLabel} disabled={updating}>
+                      <Download className="h-4 w-4 mr-2" />
+                      {updating ? "Generating..." : "Get Shipping Label"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Feedback Prompt for Closed/Rejected Tickets */}
+            {userRole === "CUSTOMER" && 
+             (ticket.status === "CLOSED" || ticket.status === "REJECTED") && 
+             !hasFeedback && (
+              <Card className="border-primary">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">How was your experience?</h3>
+                      <p className="text-sm text-muted-foreground">
+                        We'd love to hear your feedback on this ticket
+                      </p>
+                    </div>
+                    <Button onClick={() => setShowFeedbackDialog(true)} variant="default">
+                      Leave Feedback
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Ticket Details */}
             <Card>
               <CardHeader>
@@ -518,6 +612,17 @@ export default function TicketDetail() {
                         <p className="font-medium">
                           {format(new Date(ticket.purchase_date), "MMMM d, yyyy")}
                         </p>
+                      </div>
+                    </div>
+                  )}
+                  {ticket.repair_centers && userRole !== "CUSTOMER" && (
+                    <div className="flex items-start gap-3">
+                      <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Repair Center</p>
+                        <p className="font-medium">{ticket.repair_centers.name}</p>
+                        <p className="text-xs text-muted-foreground">{ticket.repair_centers.region}</p>
+                        <p className="text-xs text-muted-foreground">{ticket.repair_centers.email}</p>
                       </div>
                     </div>
                   )}
@@ -734,10 +839,16 @@ export default function TicketDetail() {
                       <SelectContent>
                         <SelectItem value="OPEN">Open</SelectItem>
                         <SelectItem value="UNDER_REVIEW">Under Review</SelectItem>
+                        <SelectItem value="SHIPPING">Shipping</SelectItem>
+                        <SelectItem value="PRODUCT_EVALUATION">Product Evaluation</SelectItem>
+                        <SelectItem value="REPLACEMENT_INITIATED">Replacement Initiated</SelectItem>
                         {ticket.ticket_type !== "RETURN" && (
                           <SelectItem value="IN_REPAIR">In Repair</SelectItem>
                         )}
+                        <SelectItem value="REPAIR_COMPLETED">Repair Completed</SelectItem>
+                        <SelectItem value="SHIPPED_TO_CUSTOMER">Shipped to Customer</SelectItem>
                         <SelectItem value="AWAITING_CUSTOMER">Awaiting Customer</SelectItem>
+                        <SelectItem value="CLOSED">Closed</SelectItem>
                         <SelectItem value="RESOLVED">Resolved</SelectItem>
                         <SelectItem value="REJECTED">Rejected</SelectItem>
                       </SelectContent>
@@ -911,6 +1022,17 @@ export default function TicketDetail() {
           productName={ticket?.products?.name || ""}
           onConfirm={confirmRepairCenterAssignment}
           loading={updating}
+        />
+        
+        <FeedbackDialog
+          open={showFeedbackDialog}
+          onOpenChange={(open) => {
+            setShowFeedbackDialog(open);
+            if (!open) checkFeedback(); // Refresh feedback status
+          }}
+          ticketId={id || ""}
+          ticketNumber={ticket?.ticket_number || 0}
+          userId={user?.id || ""}
         />
       </div>
     </Layout>
