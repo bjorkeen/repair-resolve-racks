@@ -615,7 +615,7 @@ export default function TicketDetail() {
                       </div>
                     </div>
                   )}
-                  {ticket.repair_centers && userRole !== "CUSTOMER" && (
+                  {ticket.repair_centers && (
                     <div className="flex items-start gap-3">
                       <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div>
