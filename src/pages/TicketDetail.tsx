@@ -167,7 +167,7 @@ export default function TicketDetail() {
       setTicket(ticketData);
       setNewStatus(ticketData.status);
       setNewPriority(ticketData.priority || "NORMAL");
-      setSelectedRepairCenter(ticketData.repair_center_id || "");
+      setSelectedRepairCenter(ticketData.repair_center_id || "unassigned");
 
       // Load events
       const { data: eventsData } = await supabase
@@ -511,11 +511,12 @@ export default function TicketDetail() {
 
     setUpdating(true);
     try {
-      const repairCenter = repairCenters.find(rc => rc.id === selectedRepairCenter);
+      const newRepairCenterId = selectedRepairCenter === "unassigned" ? null : selectedRepairCenter;
+      const repairCenter = repairCenters.find(rc => rc.id === newRepairCenterId);
       
       const { error } = await supabase
         .from("tickets")
-        .update({ repair_center_id: selectedRepairCenter || null })
+        .update({ repair_center_id: newRepairCenterId })
         .eq("id", id);
 
       if (error) throw error;
@@ -897,7 +898,7 @@ export default function TicketDetail() {
                             <SelectValue placeholder="Select repair center" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
                             {repairCenters.map((center) => (
                               <SelectItem key={center.id} value={center.id}>
                                 {center.name} - {center.region}
@@ -915,7 +916,7 @@ export default function TicketDetail() {
                       )}
                       <Button
                         onClick={handleRepairCenterUpdate}
-                        disabled={updating || selectedRepairCenter === ticket.repair_center_id}
+                        disabled={updating || selectedRepairCenter === (ticket.repair_center_id || "unassigned")}
                         className="w-full"
                         variant="secondary"
                       >
