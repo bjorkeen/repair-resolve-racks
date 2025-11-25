@@ -44,13 +44,18 @@ export default function TicketDetail() {
   const [recommendedRepairCenter, setRecommendedRepairCenter] = useState<any>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [hasFeedback, setHasFeedback] = useState(false);
+  const [repairCenters, setRepairCenters] = useState<any[]>([]);
+  const [selectedRepairCenter, setSelectedRepairCenter] = useState<string>("");
 
   useEffect(() => {
     if (id) {
       loadTicketDetails();
       checkFeedback();
+      if (userRole !== "CUSTOMER") {
+        loadRepairCenters();
+      }
     }
-  }, [id]);
+  }, [id, userRole]);
 
   const checkFeedback = async () => {
     if (!id || !user) return;
@@ -61,6 +66,18 @@ export default function TicketDetail() {
       .eq("user_id", user.id)
       .single();
     setHasFeedback(!!data);
+  };
+
+  const loadRepairCenters = async () => {
+    try {
+      const { data } = await supabase
+        .from("repair_centers")
+        .select("*")
+        .order("name");
+      setRepairCenters(data || []);
+    } catch (error) {
+      console.error("Error loading repair centers:", error);
+    }
   };
 
   // Real-time updates for ticket status
@@ -150,6 +167,7 @@ export default function TicketDetail() {
       setTicket(ticketData);
       setNewStatus(ticketData.status);
       setNewPriority(ticketData.priority || "NORMAL");
+      setSelectedRepairCenter(ticketData.repair_center_id || "");
 
       // Load events
       const { data: eventsData } = await supabase
@@ -488,6 +506,47 @@ export default function TicketDetail() {
     }
   };
 
+  const handleRepairCenterUpdate = async () => {
+    if (selectedRepairCenter === ticket.repair_center_id) return;
+
+    setUpdating(true);
+    try {
+      const repairCenter = repairCenters.find(rc => rc.id === selectedRepairCenter);
+      
+      const { error } = await supabase
+        .from("tickets")
+        .update({ repair_center_id: selectedRepairCenter || null })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await supabase.from("ticket_events").insert({
+        ticket_id: id,
+        by_user_id: user?.id,
+        type: "STATUS_CHANGED",
+        note: repairCenter 
+          ? `Repair center changed to ${repairCenter.name}` 
+          : "Repair center assignment removed",
+      });
+
+      toast({
+        title: "Repair center updated",
+        description: "Ticket repair center has been updated successfully",
+      });
+
+      loadTicketDetails();
+    } catch (error) {
+      console.error("Error updating repair center:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update repair center",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -615,7 +674,7 @@ export default function TicketDetail() {
                       </div>
                     </div>
                   )}
-                  {ticket.repair_centers && (
+                  {ticket.repair_centers && userRole !== "CUSTOMER" && (
                     <div className="flex items-start gap-3">
                       <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div>
@@ -823,6 +882,48 @@ export default function TicketDetail() {
                     </Button>
                   </CardContent>
                 </Card>
+
+                {/* Repair Center Management Card */}
+                {ticket.ticket_type === "REPAIR" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Repair Center Assignment</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Assigned Repair Center</Label>
+                        <Select value={selectedRepairCenter} onValueChange={setSelectedRepairCenter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select repair center" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {repairCenters.map((center) => (
+                              <SelectItem key={center.id} value={center.id}>
+                                {center.name} - {center.region}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {ticket.repair_centers && (
+                        <div className="p-3 bg-muted rounded-md text-sm">
+                          <p className="font-medium mb-1">Current: {ticket.repair_centers.name}</p>
+                          <p className="text-xs text-muted-foreground">{ticket.repair_centers.region}</p>
+                          <p className="text-xs text-muted-foreground">{ticket.repair_centers.email}</p>
+                        </div>
+                      )}
+                      <Button
+                        onClick={handleRepairCenterUpdate}
+                        disabled={updating || selectedRepairCenter === ticket.repair_center_id}
+                        className="w-full"
+                        variant="secondary"
+                      >
+                        {updating ? "Updating..." : "Update Repair Center"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Status Update Card */}
                 <Card>
