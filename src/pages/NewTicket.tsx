@@ -60,6 +60,7 @@ export default function NewTicket() {
     const { data } = await supabase
       .from("products")
       .select("*")
+      .in("product_type", ["PHONE", "LAPTOP", "APPLIANCES"])
       .order("name");
     setProducts(data || []);
   };
