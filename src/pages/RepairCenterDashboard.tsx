@@ -15,10 +15,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Package, Calendar, Hash, AlertCircle, Upload } from "lucide-react";
+import { Package, Calendar, Hash, AlertCircle, Upload, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TicketAttachments } from "@/components/TicketAttachments";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function RepairCenterDashboard() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function RepairCenterDashboard() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [repairCenter, setRepairCenter] = useState<any>(null);
+  const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     loadData();
@@ -53,7 +55,7 @@ export default function RepairCenterDashboard() {
 
       setRepairCenter(centerData);
 
-      // Load tickets
+      // Load tickets - show all tickets assigned to this repair center
       const { data: ticketsData } = await supabase
         .from("tickets")
         .select(`
@@ -62,7 +64,7 @@ export default function RepairCenterDashboard() {
           assigned_staff:profiles!tickets_assigned_to_fkey (full_name)
         `)
         .eq("repair_center_id", centerData.id)
-        .eq("status", "IN_REPAIR")
+        .in("status", ["IN_REPAIR", "PRODUCT_EVALUATION", "REPLACEMENT_INITIATED", "REPAIR_COMPLETED"])
         .order("created_at", { ascending: false });
 
       setTickets(ticketsData || []);
@@ -77,11 +79,11 @@ export default function RepairCenterDashboard() {
     }
   };
 
-  const updateRepairStatus = async (ticketId: string, newStatus: string) => {
+  const updateTicketStatus = async (ticketId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from("tickets")
-        .update({ repair_status: newStatus as any })
+        .update({ status: newStatus as any })
         .eq("id", ticketId);
 
       if (error) throw error;
@@ -91,12 +93,12 @@ export default function RepairCenterDashboard() {
         ticket_id: ticketId,
         by_user_id: user?.id,
         type: "STATUS_CHANGED",
-        note: `Repair status changed to ${newStatus.replace("_", " ")}`,
+        note: `Status changed to ${newStatus.replace(/_/g, " ")}`,
       });
 
       toast({
         title: "Status updated",
-        description: "Repair status has been updated successfully",
+        description: "Ticket status has been updated successfully",
       });
 
       loadData();
@@ -173,6 +175,36 @@ export default function RepairCenterDashboard() {
       toast({
         variant: "destructive",
         title: "Error uploading files",
+      });
+    }
+  };
+
+  const addInternalComment = async (ticketId: string) => {
+    const comment = newComment[ticketId]?.trim();
+    if (!comment) return;
+
+    try {
+      const { error } = await supabase.from("ticket_comments").insert({
+        ticket_id: ticketId,
+        user_id: user?.id,
+        comment: comment,
+        is_internal: true,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment added",
+        description: "Internal comment has been added successfully",
+      });
+
+      setNewComment({ ...newComment, [ticketId]: "" });
+      loadData();
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast({
+        variant: "destructive",
+        title: "Error adding comment",
       });
     }
   };
@@ -259,44 +291,66 @@ export default function RepairCenterDashboard() {
                     <TicketAttachments ticketId={ticket.id} />
                   </div>
 
-                  <div className="flex flex-col gap-3 pt-4 border-t">
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium">Update Repair Status:</label>
+                  <div className="flex flex-col gap-4 pt-4 border-t">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Update Ticket Status:</label>
                       <Select
-                        value={ticket.repair_status || ""}
-                        onValueChange={(value) => updateRepairStatus(ticket.id, value)}
+                        value={ticket.status}
+                        onValueChange={(value) => updateTicketStatus(ticket.id, value)}
                       >
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                          <SelectItem value="BLOCKED">Blocked</SelectItem>
-                          <SelectItem value="DONE">Done</SelectItem>
+                          <SelectItem value="PRODUCT_EVALUATION">Product Evaluation</SelectItem>
+                          <SelectItem value="REPLACEMENT_INITIATED">Replacement Initiated</SelectItem>
+                          <SelectItem value="IN_REPAIR">In Repair</SelectItem>
+                          <SelectItem value="REPAIR_COMPLETED">Repair Completed</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium">Estimated Completion:</label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Estimated Completion Date:</label>
                       <Input
                         type="date"
-                        className="w-[200px]"
+                        className="w-full"
                         value={ticket.estimated_completion_date ? format(new Date(ticket.estimated_completion_date), "yyyy-MM-dd") : ""}
                         onChange={(e) => updateEstimatedDate(ticket.id, e.target.value)}
                         min={format(new Date(), "yyyy-MM-dd")}
                       />
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium">Upload Repair Notes:</label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Upload Repair Documents:</label>
                       <Input
                         type="file"
-                        className="w-[300px]"
+                        className="w-full"
                         multiple
                         accept=".pdf,.jpg,.jpeg,.png,.webp"
                         onChange={(e) => e.target.files && handleFileUpload(ticket.id, e.target.files)}
                       />
+                    </div>
+
+                    <div className="space-y-2 pt-4 border-t">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        Add Internal Comment (visible to staff only):
+                      </label>
+                      <Textarea
+                        placeholder="Enter internal notes or comments..."
+                        value={newComment[ticket.id] || ""}
+                        onChange={(e) => setNewComment({ ...newComment, [ticket.id]: e.target.value })}
+                        className="min-h-[80px]"
+                      />
+                      <Button
+                        onClick={() => addInternalComment(ticket.id)}
+                        disabled={!newComment[ticket.id]?.trim()}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        Add Comment
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
