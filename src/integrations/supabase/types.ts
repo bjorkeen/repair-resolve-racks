@@ -591,7 +591,7 @@ export type Database = {
         | "ADMIN"
         | "REPAIR_CENTER"
         | "STAFF_MANAGER"
-      product_type: "PHONE" | "LAPTOP" | "TABLET" | "TV"
+      product_type: "PHONE" | "LAPTOP" | "APPLIANCES"
       repair_status: "IN_PROGRESS" | "BLOCKED" | "DONE"
       return_reason: "WITHIN_15_DAYS" | "AFTER_15_DAYS"
       ticket_priority: "LOW" | "NORMAL" | "URGENT"
@@ -759,7 +759,7 @@ export const Constants = {
         "REPAIR_CENTER",
         "STAFF_MANAGER",
       ],
-      product_type: ["PHONE", "LAPTOP", "TABLET", "TV"],
+      product_type: ["PHONE", "LAPTOP", "APPLIANCES"],
       repair_status: ["IN_PROGRESS", "BLOCKED", "DONE"],
       return_reason: ["WITHIN_15_DAYS", "AFTER_15_DAYS"],
       ticket_priority: ["LOW", "NORMAL", "URGENT"],

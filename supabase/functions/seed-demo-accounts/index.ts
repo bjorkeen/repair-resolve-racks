@@ -11,62 +11,54 @@ interface DemoAccount {
   password: string;
   fullName: string;
   role: 'CUSTOMER' | 'STAFF' | 'ADMIN' | 'REPAIR_CENTER' | 'STAFF_MANAGER';
+  repairCenterId?: string;
 }
 
 const demoAccounts: DemoAccount[] = [
   {
-    email: 'customer@test.com',
-    password: 'password123',
-    fullName: 'Test Customer',
+    email: 'customer@demo.com',
+    password: 'demo123',
+    fullName: 'Demo Customer',
     role: 'CUSTOMER'
   },
   {
-    email: 'staff1@test.com',
-    password: 'password123',
-    fullName: 'Staff Member 1',
+    email: 'staff@demo.com',
+    password: 'demo123',
+    fullName: 'Demo Staff Member',
     role: 'STAFF'
   },
   {
-    email: 'staff2@test.com',
-    password: 'password123',
-    fullName: 'Staff Member 2',
-    role: 'STAFF'
-  },
-  {
-    email: 'staff3@test.com',
-    password: 'password123',
-    fullName: 'Staff Member 3',
-    role: 'STAFF'
-  },
-  {
-    email: 'admin@test.com',
-    password: 'password123',
-    fullName: 'Test Admin',
+    email: 'admin@demo.com',
+    password: 'demo123',
+    fullName: 'Demo Administrator',
     role: 'ADMIN'
   },
   {
-    email: 'manager@test.com',
-    password: 'password123',
-    fullName: 'Test Staff Manager',
+    email: 'manager@demo.com',
+    password: 'demo123',
+    fullName: 'Demo Staff Manager',
     role: 'STAFF_MANAGER'
   },
   {
-    email: 'repair-mobile@test.com',
-    password: 'password123',
-    fullName: 'Mobile Repair Center',
-    role: 'REPAIR_CENTER'
+    email: 'laptop@repair.demo',
+    password: 'demo123',
+    fullName: 'TechFix Laptop Center',
+    role: 'REPAIR_CENTER',
+    repairCenterId: '11111111-1111-1111-1111-111111111111'
   },
   {
-    email: 'repair-laptop@test.com',
-    password: 'password123',
-    fullName: 'Laptop Repair Center',
-    role: 'REPAIR_CENTER'
+    email: 'phone@repair.demo',
+    password: 'demo123',
+    fullName: 'PhoneCare Repair Hub',
+    role: 'REPAIR_CENTER',
+    repairCenterId: '22222222-2222-2222-2222-222222222222'
   },
   {
-    email: 'repair-appliances@test.com',
-    password: 'password123',
-    fullName: 'Home Appliances Repair Center',
-    role: 'REPAIR_CENTER'
+    email: 'appliance@repair.demo',
+    password: 'demo123',
+    fullName: 'Appliance Masters',
+    role: 'REPAIR_CENTER',
+    repairCenterId: '33333333-3333-3333-3333-333333333333'
   }
 ];
 
@@ -141,44 +133,19 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Role updated to ${account.role} for ${account.email}`);
       }
 
-      // If it's a repair center, create or link to repair center entry
-      if (account.role === 'REPAIR_CENTER') {
-        const repairCenterName = account.fullName;
-        const region = account.email.includes('mobile') ? 'North' : 
-                      account.email.includes('laptop') ? 'South' : 'East';
-        
-        // Check if repair center already exists
-        const { data: existingCenter } = await supabaseAdmin
+      // If it's a repair center, link user to the specific repair center
+      if (account.role === 'REPAIR_CENTER' && account.repairCenterId) {
+        const { error: repairCenterError } = await supabaseAdmin
           .from('repair_centers')
-          .select('id')
-          .eq('email', account.email)
-          .maybeSingle();
+          .update({
+            user_id: userData.user.id
+          })
+          .eq('id', account.repairCenterId);
 
-        if (!existingCenter) {
-          const { error: centerError } = await supabaseAdmin
-            .from('repair_centers')
-            .insert({
-              name: repairCenterName,
-              email: account.email,
-              region: region,
-              user_id: userData.user.id
-            });
-
-          if (centerError) {
-            console.error(`Error creating repair center for ${account.email}:`, centerError);
-          } else {
-            console.log(`Repair center created for ${account.email}`);
-          }
+        if (repairCenterError) {
+          console.error(`Error linking repair center for ${account.email}:`, repairCenterError);
         } else {
-          // Update existing repair center with user_id
-          const { error: updateError } = await supabaseAdmin
-            .from('repair_centers')
-            .update({ user_id: userData.user.id })
-            .eq('id', existingCenter.id);
-
-          if (updateError) {
-            console.error(`Error updating repair center for ${account.email}:`, updateError);
-          }
+          console.log(`Repair center linked for ${account.email}`);
         }
       }
 
