@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { format } from "date-fns";
 
 export default function Dashboard() {
   const { user, userRole } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     open: 0,
     inRepair: 0,
@@ -19,6 +20,13 @@ export default function Dashboard() {
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
   const [returnsPerProduct, setReturnsPerProduct] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Redirect repair center users to their dashboard
+  useEffect(() => {
+    if (userRole === "REPAIR_CENTER") {
+      navigate("/repair-center");
+    }
+  }, [userRole, navigate]);
 
   useEffect(() => {
     if (user) {
