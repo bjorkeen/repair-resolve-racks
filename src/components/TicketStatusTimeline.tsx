@@ -27,7 +27,18 @@ const statusSteps = [
 
 export function TicketStatusTimeline({ events, currentStatus }: TicketStatusTimelineProps) {
   const getStatusEvent = (status: string) => {
-    return events.find((e) => e.type === `status_change_to_${status.toLowerCase()}`);
+    // Find events where the status was changed to this specific status
+    return events.find((e) => {
+      if (e.type === "STATUS_CHANGED" && e.note) {
+        // Check if the note mentions this status
+        return e.note.toLowerCase().includes(`to ${status.toLowerCase()}`) ||
+               e.note.toLowerCase().includes(status.toLowerCase().replace(/_/g, ' '));
+      }
+      if (e.type === "CREATED" && status === "OPEN") {
+        return true;
+      }
+      return false;
+    });
   };
 
   const isStatusCompleted = (status: string) => {
