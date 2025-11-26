@@ -64,7 +64,7 @@ export default function RepairCenterDashboard() {
           assigned_staff:profiles!tickets_assigned_to_fkey (full_name)
         `)
         .eq("repair_center_id", centerData.id)
-        .in("status", ["IN_REPAIR", "PRODUCT_EVALUATION", "REPLACEMENT_INITIATED", "REPAIR_COMPLETED"])
+        .not("status", "in", "(CLOSED,REJECTED,CANCELLED,REJECTED_OUT_OF_WARRANTY)")
         .order("created_at", { ascending: false });
 
       setTickets(ticketsData || []);
@@ -302,6 +302,7 @@ export default function RepairCenterDashboard() {
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="SHIPPING">Shipping</SelectItem>
                           <SelectItem value="PRODUCT_EVALUATION">Product Evaluation</SelectItem>
                           <SelectItem value="REPLACEMENT_INITIATED">Replacement Initiated</SelectItem>
                           <SelectItem value="IN_REPAIR">In Repair</SelectItem>
