@@ -210,7 +210,7 @@ export default function NewTicket() {
           return_reason: formData.ticketType === "RETURN" ? formData.returnReason : null,
           photos: photoUrls.length > 0 ? photoUrls : null,
         } as any)
-        .select()
+        .select("id, ticket_number")
         .single();
 
       if (ticketError) throw ticketError;
