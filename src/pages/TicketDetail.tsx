@@ -57,6 +57,18 @@ export default function TicketDetail() {
     }
   }, [id, userRole]);
 
+  useEffect(() => {
+    // Auto-show feedback dialog for customers when ticket is resolved/rejected/closed
+    if (
+      userRole === "CUSTOMER" &&
+      ticket &&
+      !hasFeedback &&
+      (ticket.status === "RESOLVED" || ticket.status === "REJECTED" || ticket.status === "CLOSED")
+    ) {
+      setShowFeedbackDialog(true);
+    }
+  }, [ticket, hasFeedback, userRole]);
+
   const checkFeedback = async () => {
     if (!id || !user) return;
     const { data } = await supabase
